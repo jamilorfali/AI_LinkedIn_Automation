@@ -89,6 +89,54 @@ def _is_allowed_url(url: str) -> bool:
     return bool(host) and not any(host == blocked or host.endswith(f".{blocked}") for blocked in SOCIAL_HOSTS)
 
 
+def _unwrap_redirect_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    query = urllib.parse.parse_qs(parsed.query)
+    for key in ["uddg", "u", "url", "q"]:
+        value = query.get(key, [""])[0]
+        if value.startswith(("http://", "https://")):
+            return urllib.parse.unquote(value)
+    if url.startswith("//"):
+        return "https:" + url
+    return url
+
+
+def _source_name_from_url(url: str) -> str:
+    host = _host(url)
+    if not host:
+        return "Public web"
+    parts = host.split(".")
+    if len(parts) >= 2:
+        label = parts[-2]
+    else:
+        label = parts[0]
+    return label.replace("-", " ").replace("_", " ").title()
+
+
+def _trust_tier_for_web_url(url: str) -> str:
+    host = _host(url)
+    if host.endswith((".gov", ".edu", ".mil")):
+        return "high_trust"
+    if any(
+        marker in host
+        for marker in [
+            "acm.org",
+            "brookings.edu",
+            "ieee.org",
+            "iso.org",
+            "mckinsey.com",
+            "mit.edu",
+            "nist.gov",
+            "oecd.org",
+            "pewresearch.org",
+            "stanford.edu",
+            "weforum.org",
+        ]
+    ):
+        return "high_trust"
+    return "useful_but_verify"
+
+
 def _relevance_score(result: OnlineSearchResult, query: str) -> int:
     haystack = tokenize(" ".join([result.title, result.summary, result.source_name, result.url]))
     query_tokens = set(_safe_query_terms(query))
@@ -123,6 +171,39 @@ def _dedupe_and_rank(results: Iterable[OnlineSearchResult], query: str, limit: i
         )
     ranked = sorted(by_url.values(), key=lambda item: _relevance_score(item, query), reverse=True)
     return ranked[:limit]
+
+
+def _general_web_url(query: str, limit: int) -> str:
+    web_query = f"{query} AI artificial intelligence"
+    return "https://lite.duckduckgo.com/lite/?" + urllib.parse.urlencode({"q": web_query})
+
+
+def _parse_duckduckgo_lite(text: str) -> list[OnlineSearchResult]:
+    results: list[OnlineSearchResult] = []
+    anchor_pattern = re.compile(
+        r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>',
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    for raw_url, raw_title in anchor_pattern.findall(text or ""):
+        title = _clean_text(raw_title, max_chars=180)
+        url = _unwrap_redirect_url(unescape(raw_url).strip())
+        if not title or not _is_allowed_url(url):
+            continue
+        host = _host(url)
+        if host in {"duckduckgo.com", "lite.duckduckgo.com"}:
+            continue
+        results.append(
+            OnlineSearchResult(
+                provider="General Web Search",
+                title=title,
+                summary=f"General web search result from {_source_name_from_url(url)}.",
+                url=url,
+                source_name=_source_name_from_url(url),
+                trust_tier=_trust_tier_for_web_url(url),
+                result_type="general_web_result",
+            )
+        )
+    return results
 
 
 def _arxiv_url(query: str, limit: int) -> str:
@@ -315,7 +396,7 @@ def _enrich_public_web_articles(
     enriched: list[OnlineSearchResult] = []
     public_web_fetches = 0
     for result in results:
-        if result.provider != "GDELT" or public_web_fetches >= 3:
+        if result.provider not in {"GDELT", "General Web Search"} or public_web_fetches >= 5:
             enriched.append(result)
             continue
         public_web_fetches += 1
@@ -340,6 +421,7 @@ def _enrich_public_web_articles(
 
 
 PROVIDERS = [
+    ("General Web Search", _general_web_url, _parse_duckduckgo_lite),
     ("arXiv", _arxiv_url, _parse_arxiv),
     ("Semantic Scholar", _semantic_scholar_url, _parse_semantic_scholar),
     ("Crossref", _crossref_url, _parse_crossref),
@@ -352,7 +434,7 @@ def search_public_ai_sources(
     limit: int = 12,
     fetcher: Fetcher | None = None,
 ) -> OnlineSearchReport:
-    """Search free public web/research indexes for real URL-bearing AI source material."""
+    """Search the open web plus public research indexes for real URL-bearing AI source material."""
     cleaned_query = _clean_text(query, max_chars=180)
     if not cleaned_query:
         raise ValueError("Enter a topic to search.")

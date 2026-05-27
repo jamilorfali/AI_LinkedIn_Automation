@@ -4,6 +4,34 @@ from ai_linkedin_automation.online_search import search_public_ai_sources
 
 
 def _fixture_fetcher(url: str) -> str:
+    if "lite.duckduckgo.com" in url:
+        return """
+<html>
+  <body>
+    <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.example.com%2Fagentic-ai-enterprise-governance">Agentic AI governance is changing enterprise workflows</a>
+    <a rel="nofollow" href="https://www.nist.gov/itl/ai-risk-management-framework">NIST AI Risk Management Framework</a>
+    <a rel="nofollow" href="https://www.linkedin.com/posts/not-allowed">LinkedIn result should be filtered</a>
+  </body>
+</html>
+"""
+    if "www.example.com" in url:
+        return """
+<html>
+  <head>
+    <title>Agentic AI governance is changing enterprise workflows</title>
+    <meta name="description" content="A public article about AI governance controls, agentic workflow risk, and enterprise adoption.">
+  </head>
+</html>
+"""
+    if "nist.gov" in url:
+        return """
+<html>
+  <head>
+    <title>NIST AI Risk Management Framework</title>
+    <meta property="og:description" content="NIST guidance for mapping, measuring, managing, and governing AI risk.">
+  </head>
+</html>
+"""
     if "export.arxiv.org" in url:
         return """<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
@@ -75,12 +103,21 @@ def test_search_public_ai_sources_returns_real_url_bearing_results():
     )
 
     assert report.query == "agentic AI workflow governance"
-    assert len(report.searched_urls) == 4
-    assert len(report.results) == 4
+    assert len(report.searched_urls) == 5
+    assert len(report.results) == 6
     assert report.results[0].url.startswith("https://")
     assert "linkedin.com" not in {result.url for result in report.results}
-    assert {result.provider for result in report.results} >= {"arXiv", "Semantic Scholar", "Crossref"}
+    assert {result.provider for result in report.results} >= {
+        "General Web Search",
+        "arXiv",
+        "Semantic Scholar",
+        "Crossref",
+    }
     assert {result.trust_tier for result in report.results} >= {"primary", "high_trust"}
+    assert any(
+        "A public article about AI governance controls" in result.summary
+        for result in report.results
+    )
 
 
 def test_search_public_ai_sources_reports_provider_errors_without_hallucinating():
@@ -90,4 +127,4 @@ def test_search_public_ai_sources_reports_provider_errors_without_hallucinating(
     )
 
     assert report.results == []
-    assert len(report.provider_errors) == 4
+    assert len(report.provider_errors) == 5

@@ -74,6 +74,8 @@ READABLE_SUFFIXES = {
     ".yml",
 }
 
+MIN_ONLINE_SEARCH_SOURCES = 10
+
 
 @dataclass
 class BusinessAction:
@@ -3468,7 +3470,7 @@ def _online_search_source_count(results: List[OnlineSearchResult]) -> int:
 
 
 def _create_online_researched_topic(config: Config, query: str, week: str) -> tuple[str, OnlineSearchReport]:
-    report = search_public_ai_sources(query, limit=12)
+    report = search_public_ai_sources(query, limit=16)
     if not report.results:
         details = "; ".join(report.provider_errors[:4])
         reason = f" Search providers reported: {details}" if details else ""
@@ -3476,11 +3478,19 @@ def _create_online_researched_topic(config: Config, query: str, week: str) -> tu
             "No verified online source records were found for that topic, so no draft was built."
             + reason
         )
+    source_count = _online_search_source_count(report.results)
+    if source_count < MIN_ONLINE_SEARCH_SOURCES:
+        details = "; ".join(report.provider_errors[:4])
+        provider_note = f" Provider issues: {details}" if details else ""
+        raise ValueError(
+            f"Only {source_count} verified online source record(s) were found. "
+            f"At least {MIN_ONLINE_SEARCH_SOURCES} are required before building a custom topic draft."
+            + provider_note
+        )
 
     now = datetime.now().isoformat(timespec="seconds")
     topic_id = stable_id("topic_online", query, week)
     summary = _online_summary(query, report)
-    source_count = _online_search_source_count(report.results)
     lead = report.results[0]
     scorecard = build_scorecard(query, summary, lead.trust_tier)
     high_trust_count = len(

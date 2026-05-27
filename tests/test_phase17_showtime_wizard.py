@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from ai_linkedin_automation.article_package import extract_section, reference_count
 from ai_linkedin_automation.online_search import OnlineSearchReport, OnlineSearchResult
 from ai_linkedin_automation.business_console import (
     apply_draft_preset,
@@ -168,31 +169,28 @@ def test_ui_html_has_unique_element_ids():
 
 
 def _online_search_report(query: str) -> OnlineSearchReport:
+    results = []
+    for index in range(10):
+        host = "research.example.edu" if index % 2 == 0 else "industry.example.org"
+        results.append(
+            OnlineSearchResult(
+                provider="DuckDuckGo Web" if index < 5 else "Bing Web",
+                title=f"Online AI governance source {index + 1}",
+                summary=(
+                    "A fetched public web result about AI governance, agentic systems, "
+                    "workflow controls, evidence quality, and executive decision making."
+                ),
+                url=f"https://{host}/ai-governance-source-{index + 1}",
+                source_name=f"Online Source {index + 1}",
+                trust_tier="high_trust" if index % 2 == 0 else "useful_but_verify",
+                published_at=f"2026-05-{index + 1:02d}",
+                result_type="general_web_result",
+            )
+        )
     return OnlineSearchReport(
         query=query,
         generated_at="2026-05-27T12:00:00",
-        results=[
-            OnlineSearchResult(
-                provider="arXiv",
-                title="AI governance operating model for enterprise leaders",
-                summary="A public research result about AI governance, operations, evidence, and decision quality.",
-                url="https://arxiv.org/abs/2605.12345",
-                source_name="arXiv",
-                trust_tier="primary",
-                published_at="2026-05-20",
-                result_type="research_paper",
-            ),
-            OnlineSearchResult(
-                provider="Crossref",
-                title="Enterprise AI workflow governance",
-                summary="A published article about enterprise AI workflow governance and accountable review.",
-                url="https://doi.org/10.5555/workflow-governance",
-                source_name="Journal of AI Operations",
-                trust_tier="high_trust",
-                published_at="2026-05-01",
-                result_type="journal-article",
-            ),
-        ],
+        results=results,
     )
 
 
@@ -202,7 +200,7 @@ def test_topic_board_and_online_topic_build_package(tmp_path, monkeypatch):
     build_production_test_package(config, week="2026-W21")
     monkeypatch.setattr(
         "ai_linkedin_automation.business_console.search_public_ai_sources",
-        lambda query, limit=12: _online_search_report(query),
+        lambda query, limit=16: _online_search_report(query),
     )
 
     board = topic_board(config)
@@ -216,7 +214,7 @@ def test_topic_board_and_online_topic_build_package(tmp_path, monkeypatch):
     )
     assert package["draft_id"]
     assert package["selected_topic_id"]
-    assert package["online_search"]["source_count"] == 2
+    assert package["online_search"]["source_count"] == 10
     with connect_db(config.storage.sqlite_path) as conn:
         rows = conn.execute(
             """
@@ -229,12 +227,22 @@ def test_topic_board_and_online_topic_build_package(tmp_path, monkeypatch):
             """,
             (package["selected_topic_id"],),
         ).fetchall()
+        draft_content = conn.execute(
+            "SELECT content FROM drafts WHERE id = ?",
+            (package["draft_id"],),
+        ).fetchone()["content"]
     urls = {row["url"] for row in rows}
     assert "manual://ad-hoc-topic" not in "\n".join(urls)
-    assert "https://arxiv.org/abs/2605.12345" in urls
-    assert "https://doi.org/10.5555/workflow-governance" in urls
+    assert "https://research.example.edu/ai-governance-source-1" in urls
+    assert "https://industry.example.org/ai-governance-source-10" in urls
     assert {row["source_type"] for row in rows} == {"online_search"}
-    assert {row["trust_tier"] for row in rows} >= {"primary", "high_trust"}
+    assert {row["trust_tier"] for row in rows} >= {"high_trust", "useful_but_verify"}
+    references = extract_section(draft_content, "References")
+    assert reference_count(draft_content) == 10
+    assert "https://research.example.edu/ai-governance-source-1" in references
+    assert "https://industry.example.org/ai-governance-source-10" in references
+    assert "https://www.nist.gov/itl/ai-risk-management-framework" not in references
+    assert "https://www.mckinsey.com/capabilities/quantumblack/our-insights" not in references
 
 
 def test_online_topic_build_refuses_to_draft_without_verified_results(tmp_path, monkeypatch):
@@ -251,6 +259,24 @@ def test_online_topic_build_refuses_to_draft_without_verified_results(tmp_path, 
     )
 
     with pytest.raises(ValueError, match="No verified online source records"):
+        build_topic_package(
+            config,
+            week="2026-W21",
+            query="AI governance operating model for executives",
+        )
+
+
+def test_online_topic_build_refuses_to_pad_with_reserved_sources(tmp_path, monkeypatch):
+    config = _config(tmp_path, monkeypatch)
+    _insert_publish_ready_finding(config)
+    short_report = _online_search_report("AI governance")
+    short_report.results = short_report.results[:2]
+    monkeypatch.setattr(
+        "ai_linkedin_automation.business_console.search_public_ai_sources",
+        lambda query, limit=16: short_report,
+    )
+
+    with pytest.raises(ValueError, match="At least 10"):
         build_topic_package(
             config,
             week="2026-W21",

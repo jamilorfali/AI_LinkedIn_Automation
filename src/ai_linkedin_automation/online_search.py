@@ -173,12 +173,36 @@ def _dedupe_and_rank(results: Iterable[OnlineSearchResult], query: str, limit: i
     return ranked[:limit]
 
 
-def _general_web_url(query: str, limit: int) -> str:
+def _duckduckgo_lite_url(query: str, limit: int) -> str:
     web_query = f"{query} AI artificial intelligence"
     return "https://lite.duckduckgo.com/lite/?" + urllib.parse.urlencode({"q": web_query})
 
 
-def _parse_duckduckgo_lite(text: str) -> list[OnlineSearchResult]:
+def _duckduckgo_html_url(query: str, limit: int) -> str:
+    web_query = f"{query} AI artificial intelligence"
+    return "https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": web_query})
+
+
+def _bing_web_url(query: str, limit: int) -> str:
+    web_query = f"{query} AI artificial intelligence"
+    return "https://www.bing.com/search?" + urllib.parse.urlencode({"q": web_query, "count": limit})
+
+
+def _bing_news_rss_url(query: str, limit: int) -> str:
+    web_query = f"{query} AI artificial intelligence"
+    return "https://www.bing.com/news/search?" + urllib.parse.urlencode(
+        {"q": web_query, "format": "rss"}
+    )
+
+
+def _google_news_rss_url(query: str, limit: int) -> str:
+    web_query = f"{query} AI artificial intelligence"
+    return "https://news.google.com/rss/search?" + urllib.parse.urlencode(
+        {"q": web_query, "hl": "en-US", "gl": "US", "ceid": "US:en"}
+    )
+
+
+def _html_link_results(text: str, provider: str) -> list[OnlineSearchResult]:
     results: list[OnlineSearchResult] = []
     anchor_pattern = re.compile(
         r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>',
@@ -190,11 +214,18 @@ def _parse_duckduckgo_lite(text: str) -> list[OnlineSearchResult]:
         if not title or not _is_allowed_url(url):
             continue
         host = _host(url)
-        if host in {"duckduckgo.com", "lite.duckduckgo.com"}:
+        if host in {
+            "bing.com",
+            "duckduckgo.com",
+            "google.com",
+            "html.duckduckgo.com",
+            "lite.duckduckgo.com",
+            "microsoft.com",
+        }:
             continue
         results.append(
             OnlineSearchResult(
-                provider="General Web Search",
+                provider=provider,
                 title=title,
                 summary=f"General web search result from {_source_name_from_url(url)}.",
                 url=url,
@@ -204,6 +235,51 @@ def _parse_duckduckgo_lite(text: str) -> list[OnlineSearchResult]:
             )
         )
     return results
+
+
+def _parse_duckduckgo_lite(text: str) -> list[OnlineSearchResult]:
+    return _html_link_results(text, "DuckDuckGo Web")
+
+
+def _parse_duckduckgo_html(text: str) -> list[OnlineSearchResult]:
+    return _html_link_results(text, "DuckDuckGo HTML")
+
+
+def _parse_bing_web(text: str) -> list[OnlineSearchResult]:
+    return _html_link_results(text, "Bing Web")
+
+
+def _parse_rss_items(text: str, provider: str) -> list[OnlineSearchResult]:
+    root = ET.fromstring(text)
+    results: list[OnlineSearchResult] = []
+    for item in root.findall(".//item"):
+        title = _clean_text(item.findtext("title", default=""), max_chars=180)
+        url = _unwrap_redirect_url(_clean_text(item.findtext("link", default=""), max_chars=500))
+        summary = _clean_text(item.findtext("description", default=""))
+        published = _clean_text(item.findtext("pubDate", default=""), max_chars=80)
+        source = item.findtext("source", default="") or _source_name_from_url(url)
+        if title and _is_allowed_url(url):
+            results.append(
+                OnlineSearchResult(
+                    provider=provider,
+                    title=title,
+                    summary=summary or f"News/search result from {_source_name_from_url(url)}.",
+                    url=url,
+                    source_name=_clean_text(source, max_chars=120),
+                    trust_tier=_trust_tier_for_web_url(url),
+                    published_at=published,
+                    result_type="news_or_public_web_result",
+                )
+            )
+    return results
+
+
+def _parse_bing_news_rss(text: str) -> list[OnlineSearchResult]:
+    return _parse_rss_items(text, "Bing News")
+
+
+def _parse_google_news_rss(text: str) -> list[OnlineSearchResult]:
+    return _parse_rss_items(text, "Google News")
 
 
 def _arxiv_url(query: str, limit: int) -> str:
@@ -396,7 +472,11 @@ def _enrich_public_web_articles(
     enriched: list[OnlineSearchResult] = []
     public_web_fetches = 0
     for result in results:
-        if result.provider not in {"GDELT", "General Web Search"} or public_web_fetches >= 5:
+        if result.result_type not in {
+            "general_web_result",
+            "news_or_public_web_result",
+            "public_web_article",
+        } or public_web_fetches >= 10:
             enriched.append(result)
             continue
         public_web_fetches += 1
@@ -421,7 +501,11 @@ def _enrich_public_web_articles(
 
 
 PROVIDERS = [
-    ("General Web Search", _general_web_url, _parse_duckduckgo_lite),
+    ("DuckDuckGo Web", _duckduckgo_lite_url, _parse_duckduckgo_lite),
+    ("DuckDuckGo HTML", _duckduckgo_html_url, _parse_duckduckgo_html),
+    ("Bing Web", _bing_web_url, _parse_bing_web),
+    ("Bing News", _bing_news_rss_url, _parse_bing_news_rss),
+    ("Google News", _google_news_rss_url, _parse_google_news_rss),
     ("arXiv", _arxiv_url, _parse_arxiv),
     ("Semantic Scholar", _semantic_scholar_url, _parse_semantic_scholar),
     ("Crossref", _crossref_url, _parse_crossref),

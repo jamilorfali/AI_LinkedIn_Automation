@@ -263,13 +263,18 @@ def _topic_context(config: Config, topic_id: str) -> Dict[str, object]:
             raise ValueError(f"Topic not found: {topic_id}")
         sources = conn.execute(
             """
-            SELECT findings.title, findings.summary, findings.url,
-                   sources.name AS source_name, sources.trust_tier
+            SELECT findings.title, findings.summary, findings.url, findings.published_at,
+                   sources.name AS source_name, sources.trust_tier, sources.source_type,
+                   topic_findings.relationship
             FROM topic_findings
             JOIN findings ON findings.id = topic_findings.finding_id
             LEFT JOIN sources ON sources.id = findings.source_id
             WHERE topic_findings.topic_id = ?
             ORDER BY
+              CASE topic_findings.relationship
+                WHEN 'lead_source' THEN 0
+                ELSE 1
+              END,
               CASE sources.trust_tier
                 WHEN 'primary' THEN 1
                 WHEN 'high_trust' THEN 2
@@ -280,6 +285,10 @@ def _topic_context(config: Config, topic_id: str) -> Dict[str, object]:
             (topic_id,),
         ).fetchall()
     return {"topic": dict(topic), "sources": [dict(row) for row in sources]}
+
+
+def _is_online_search_source_set(sources: List[Dict[str, object]]) -> bool:
+    return any(str(source.get("source_type") or "") == "online_search" for source in sources)
 
 
 def _source_references(sources: List[Dict[str, object]]) -> List[ArticleReference]:
@@ -295,7 +304,7 @@ def _source_references(sources: List[Dict[str, object]]) -> List[ArticleReferenc
         refs.append(
             ArticleReference(
                 source_name,
-                "n.d.",
+                str(source.get("published_at") or "n.d.")[:4] or "n.d.",
                 title,
                 source_name,
                 url,
@@ -307,6 +316,8 @@ def _source_references(sources: List[Dict[str, object]]) -> List[ArticleReferenc
 
 def _reference_dossier(sources: List[Dict[str, object]], limit: int = 16) -> List[ArticleReference]:
     refs = _source_references(sources)
+    if _is_online_search_source_set(sources):
+        return refs[:limit]
     seen_urls = {ref.url for ref in refs}
     for reference in CURATED_REFERENCES:
         if len(refs) >= limit:
@@ -359,12 +370,115 @@ Full article: [PASTE ARTICLE LINK]"""
     return " ".join(words[:92]).rstrip(" ,;:") + "...\n\nFull article: [PASTE ARTICLE LINK]"
 
 
+def _citation_at(refs: List[ArticleReference], index: int) -> str:
+    if not refs:
+        return "the source dossier"
+    return refs[min(index, len(refs) - 1)].citation()
+
+
+def _source_digest_lines(sources: List[Dict[str, object]], refs: List[ArticleReference]) -> str:
+    lines = []
+    for index, source in enumerate(sources[:10]):
+        title = _clean(str(source.get("title") or "Untitled source"), max_chars=130)
+        summary = _clean(str(source.get("summary") or title), max_chars=240)
+        lines.append(f"- {title}: {summary} ({_citation_at(refs, index)})")
+    return "\n".join(lines)
+
+
+def _online_article_body(
+    title: str,
+    topic: Dict[str, object],
+    sources: List[Dict[str, object]],
+    refs: List[ArticleReference],
+) -> str:
+    topic_title = str(topic.get("title") or title)
+    summary = _clean(str(topic.get("summary") or topic.get("plain_english_summary") or topic_title))
+    lead_ref = _citation_at(refs, 0)
+    second_ref = _citation_at(refs, 1)
+    third_ref = _citation_at(refs, 2)
+    fourth_ref = _citation_at(refs, 3)
+    fifth_ref = _citation_at(refs, 4)
+    sixth_ref = _citation_at(refs, 5)
+    seventh_ref = _citation_at(refs, 6)
+    eighth_ref = _citation_at(refs, 7)
+    ninth_ref = _citation_at(refs, 8)
+    tenth_ref = _citation_at(refs, 9)
+    digest = _source_digest_lines(sources, refs)
+
+    return f"""**The opinions expressed here are my own and do not reflect the views of my employer.**
+
+The useful signal in this topic is not that one more AI headline appeared. It is that the public evidence is now broad enough to ask a better leadership question: what should a responsible organization do differently after reading the source material?
+
+The topic I searched was "{topic_title}." The app did not use an internal source reserve for this package. It built the argument from the online source dossier attached below, starting with {lead_ref} and cross-checking the pattern against additional public results such as {second_ref}, {third_ref}, and {fourth_ref}.
+
+{summary}
+
+### What The Search Found
+
+The source set points to a practical thesis: AI value is moving from isolated model capability toward operating discipline. The important question is not whether a tool can produce a convincing answer. The important question is whether the surrounding workflow can explain the answer, challenge it, preserve the evidence trail, and prevent premature action.
+
+Here is the working source dossier the article is based on:
+
+{digest}
+
+That list matters because it changes the posture of the article. This is not a generic opinion about AI. It is a synthesis of public material found for this specific topic. Some sources are likely stronger than others. Some are research-oriented. Some are market or news-oriented. The point is to turn that uneven public record into a useful executive read without pretending that every source has the same weight.
+
+### 1. The Pattern Is Bigger Than One Article
+
+The lead source, {lead_ref}, is the opening signal, not the entire argument. A single article can make a sharp point, but it cannot carry a full business thesis by itself. That is why the supporting results matter. {second_ref} and {third_ref} help test whether the topic is isolated noise or part of a broader movement. {fourth_ref} and {fifth_ref} add a second layer: how the topic is being described outside the first source's frame.
+
+When leaders evaluate AI topics, this is the first discipline to build. Do not ask, "Is this headline interesting?" Ask, "Does the pattern repeat across independent public sources, and do those sources disagree in useful ways?" If the answer is yes, the topic may be worth a leadership conversation. If the answer is no, it may still be interesting, but it is not ready to become a public point of view.
+
+### 2. The Operational Question Is The Real Article
+
+The public discussion around AI often starts with capability: faster models, larger contexts, new agents, better benchmarks, cheaper inference, more automation. Capability matters, but capability alone is not a management system. The operating question is what a team is now able to do, what risk it inherits, and what new review moment must exist before the work touches customers, employees, money, reputation, or public commitments.
+
+That is the frame I would use for this topic. {sixth_ref} and {seventh_ref} should be read as evidence about the operating environment, not just as content to quote. They help show where the topic is going, who is paying attention, and what assumptions need to be tested. If a source describes adoption, the article should ask whether adoption is producing better decisions or simply more output. If a source describes risk, the article should ask whether the organization has a visible control. If a source describes a new product or capability, the article should ask what has to be true before the capability is safe to use.
+
+### 3. Sourcing Should Change The Tone
+
+Good sourcing should make a post more careful, not more timid. The reason to gather ten or more sources is not to make the article look academic. It is to avoid the common LinkedIn failure mode where a confident claim outruns the evidence behind it.
+
+In this package, the references play different roles. {lead_ref} gives the entry point. {second_ref}, {third_ref}, and {fourth_ref} broaden the frame. {fifth_ref} and {sixth_ref} help establish whether the issue is technical, organizational, regulatory, or market-driven. {seventh_ref}, {eighth_ref}, {ninth_ref}, and {tenth_ref} provide additional checks against overgeneralizing from a single source.
+
+That structure should be visible to the reader. The article should not say "everyone is doing this" unless the sources support that claim. It should not say "the market has decided" unless the sources show more than vendor enthusiasm. It should not say "research proves" when the source is really an early paper, a news article, or a single institutional viewpoint. The stronger version is usually simpler: "The public evidence points in this direction, and here is the leadership question it raises."
+
+### 4. The Executive Takeaway
+
+My takeaway from the source set is this: AI strategy is becoming less about isolated experiments and more about the quality of the decision environment around those experiments. A strong organization does not just ask whether AI can perform a task. It asks whether people can inspect the evidence, understand the boundary, approve the action, and learn from the outcome.
+
+That may sound procedural, but it is where a lot of AI value will be won or lost. Teams do not fail only because the model is weak. They fail because the workflow is vague. They fail because the source trail is invisible. They fail because the person reviewing the output does not know what standard to apply. They fail because the organization moves from "AI assisted me" to "AI decided for me" without naming the moment when responsibility changed hands.
+
+The source dossier suggests a better path. Treat this topic as a design prompt. What would have to be true for a real team to use this capability responsibly? What source quality would be required? What human review would be meaningful rather than ceremonial? What exceptions would need escalation? What evidence would the team preserve so that a future reader can understand why the decision made sense at the time?
+
+### 5. What I Would Do Next
+
+Before turning this topic into a program, pilot, or public claim, I would ask for five things.
+
+First, identify the decision or work product the topic affects. If nobody can name the work, the AI conversation is still too abstract.
+
+Second, separate the sources by strength. Official, academic, institutional, journalistic, vendor, and commentary sources should not be treated as interchangeable.
+
+Third, write the claim in plain English. If the claim cannot be said clearly, it probably cannot be governed clearly.
+
+Fourth, define the human review moment. A person should know what they are approving, what evidence they are relying on, and what would make them reject the output.
+
+Fifth, keep the source trail attached. If the article, post, or workflow survives beyond the day it was drafted, the evidence should survive with it.
+
+The headline is not that this topic is exciting. Many AI topics are exciting for a week. The better headline is that the public evidence is now rich enough to force a more mature question: are we designing the operating model with the same seriousness that we bring to the technology?
+
+That is the standard I would use before calling the idea ready for executive attention. Not whether the demo is impressive. Not whether the market language is persuasive. Not whether one source makes a bold claim. The standard is whether the source-backed argument helps leaders make a better decision than they would have made before reading it."""
+
+
 def _article_body(
     title: str,
     topic: Dict[str, object],
     sources: List[Dict[str, object]],
     refs: List[ArticleReference],
 ) -> str:
+    if _is_online_search_source_set(sources):
+        return _online_article_body(title, topic, sources, refs)
+
     topic_title = str(topic.get("title") or title)
     summary = _clean(str(topic.get("summary") or topic.get("plain_english_summary") or topic_title))
     source_name = str((sources[0] or {}).get("source_name") or "a public source") if sources else "a public source"

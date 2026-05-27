@@ -71,6 +71,16 @@ def _topic_by_id(config: Config, topic_id: str) -> Optional[Dict[str, object]]:
             LEFT JOIN findings ON findings.id = topic_findings.finding_id
             LEFT JOIN sources ON sources.id = findings.source_id
             WHERE topics.id = ?
+            ORDER BY
+                CASE sources.trust_tier
+                    WHEN 'primary' THEN 1
+                    WHEN 'high_trust' THEN 2
+                    ELSE 3
+                END,
+                CASE topic_findings.relationship
+                    WHEN 'lead_source' THEN 1
+                    ELSE 2
+                END
             LIMIT 1
             """,
             (topic_id,),

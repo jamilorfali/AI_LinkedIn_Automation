@@ -908,10 +908,10 @@
             <div>
               <div class="eyebrow">Start here</div>
               <h2 id="start-title">Create a sourced LinkedIn article.</h2>
-              <p id="plainHeadline">Search a topic, build a short post plus full article, generate an image brief, approve the exact draft, then post manually.</p>
+              <p id="plainHeadline">Search live public AI sources, build a short post plus full article, generate an image brief, approve the exact draft, then post manually.</p>
             </div>
             <div class="topic-search" role="search">
-              <input id="customTopicInput" maxlength="420" placeholder="Search a topic or describe what you want to write about">
+              <input id="customTopicInput" maxlength="420" placeholder="Search live AI articles, papers, and public sources">
               <button id="customTopicBtn">Search & Draft</button>
             </div>
             <div class="single-action">
@@ -937,7 +937,7 @@
             <div class="screen-head" style="margin-bottom:10px;">
               <div>
                 <h3>Suggested topics</h3>
-                <p>Pick a sourced topic card, or use the search bar above for an interest you have right now.</p>
+                <p>Pick a sourced topic card, or search live public AI sources for an interest you have right now.</p>
               </div>
             </div>
             <div class="button-row" style="margin-top:10px;">
@@ -1551,7 +1551,9 @@
       if (path === 'copyAbstractBtn') return 'Abstract copied.';
       if (path === 'copySourceLinkBtn') return 'Source link copied.';
       if (path === 'generateImageBtn') return 'Safe image generated.';
-      if (path === 'customTopicBtn') return 'Custom topic package built.';
+      if (path === 'customTopicBtn') return data?.online_search?.source_count
+        ? `Online search found ${data.online_search.source_count} source(s). Draft package built.`
+        : 'Online source-backed package built.';
       if (path === 'fullRefreshTopicsBtn') return 'Topic board refreshed. Undo is available.';
       if (path === 'undoTopicRefreshBtn') return 'Previous topic board restored.';
       if (path === 'saveApprovalUrlBtn') return 'Approval URL saved and notification refreshed.';

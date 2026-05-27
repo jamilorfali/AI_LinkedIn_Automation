@@ -39,6 +39,11 @@ from ai_linkedin_automation.locus_workflows import (
 from ai_linkedin_automation.operations.preflight import run_preflight
 from ai_linkedin_automation.operations.schedule import build_local_schedule_package
 from ai_linkedin_automation.operations.workflows import run_daily_scan, run_friday_package
+from ai_linkedin_automation.online_search import (
+    OnlineSearchReport,
+    OnlineSearchResult,
+    search_public_ai_sources,
+)
 from ai_linkedin_automation.pilot.checklist import build_pilot_checklist, update_pilot_checklist_item
 from ai_linkedin_automation.pilot.live_pilot import run_production_pilot
 from ai_linkedin_automation.pilot.production_test import build_production_test_package
@@ -52,6 +57,7 @@ from ai_linkedin_automation.publishing.archive import archive_manual_post
 from ai_linkedin_automation.publishing.manual import build_manual_posting_package
 from ai_linkedin_automation.publishing.safety_gate import evaluate_manual_posting_gate
 from ai_linkedin_automation.review import create_approval_packet, export_review_queue_csv, import_review_queue_csv
+from ai_linkedin_automation.scoring.scoring import build_scorecard
 from ai_linkedin_automation.storage.db import connect_db, transaction
 from ai_linkedin_automation.intelligence.common import stable_id, tokenize
 
@@ -3444,55 +3450,48 @@ def _best_matching_topic(config: Config, query: str) -> Optional[str]:
     return best_id if best_score >= max(1, min(3, len(query_tokens) // 3)) else None
 
 
-def _create_ad_hoc_topic(config: Config, query: str, week: str) -> str:
+def _online_summary(query: str, report: OnlineSearchReport) -> str:
+    source_lines = []
+    for index, result in enumerate(report.results[:5], start=1):
+        source_lines.append(f"{index}. {result.title} ({result.source_name}, {result.provider})")
+    return (
+        f"Real online search for '{query}' found {len(report.results)} public AI-related source(s). "
+        f"Lead source: {report.results[0].title} ({report.results[0].source_name}). "
+        "The draft must stay anchored to the fetched URLs below and should not treat unsupported claims as facts. "
+        + " Sources: "
+        + " | ".join(source_lines)
+    )
+
+
+def _online_search_source_count(results: List[OnlineSearchResult]) -> int:
+    return len({result.url for result in results if result.url.startswith(("http://", "https://"))})
+
+
+def _create_online_researched_topic(config: Config, query: str, week: str) -> tuple[str, OnlineSearchReport]:
+    report = search_public_ai_sources(query, limit=12)
+    if not report.results:
+        details = "; ".join(report.provider_errors[:4])
+        reason = f" Search providers reported: {details}" if details else ""
+        raise ValueError(
+            "No verified online source records were found for that topic, so no draft was built."
+            + reason
+        )
+
     now = datetime.now().isoformat(timespec="seconds")
-    topic_id = stable_id("topic_custom", query, week)
-    finding_id = stable_id("finding_custom", query, week)
-    source_id = "ad_hoc_operator_topic"
-    content_hash = hashlib.sha256(f"{query}|{week}".encode()).hexdigest()
+    topic_id = stable_id("topic_online", query, week)
+    summary = _online_summary(query, report)
+    source_count = _online_search_source_count(report.results)
+    lead = report.results[0]
+    scorecard = build_scorecard(query, summary, lead.trust_tier)
+    high_trust_count = len(
+        [result for result in report.results if result.trust_tier in {"primary", "high_trust"}]
+    )
+    recommendation = "draft_now" if high_trust_count and scorecard.political_risk == "low" else "save_for_verification"
+    draft_readiness = max(scorecard.draft_readiness, 4 if high_trust_count else 2)
+    source_credibility = max(scorecard.source_credibility, 4 if high_trust_count else 2)
+    raw_report = json.dumps(asdict(report), indent=2)
+
     with transaction(config.storage.sqlite_path) as conn:
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO sources (
-                id, name, type, source_type, trust_tier, url, is_active,
-                recurring_enabled, created_at, updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                source_id,
-                "User-provided topic",
-                "manual",
-                "manual",
-                "needs_verification",
-                "manual://ad-hoc-topic",
-                1,
-                0,
-                now,
-                now,
-            ),
-        )
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO findings (
-                id, source_id, url, title, summary, published_at,
-                content_hash, raw_content, status, created_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                finding_id,
-                source_id,
-                f"manual://ad-hoc-topic/{topic_id}",
-                query,
-                f"User requested an ad-hoc LinkedIn draft on: {query}. This topic needs source verification before public posting.",
-                now,
-                content_hash,
-                query,
-                "new",
-                now,
-            ),
-        )
         conn.execute(
             """
             INSERT OR REPLACE INTO topics (
@@ -3508,31 +3507,113 @@ def _create_ad_hoc_topic(config: Config, query: str, week: str) -> str:
                 topic_id,
                 week,
                 query,
-                f"Ad-hoc topic requested by the operator: {query}. Add or verify public sources before posting.",
-                f"Ad-hoc topic: {query}",
-                "Useful if a public source can be attached.",
-                3,
-                3,
-                2,
-                1,
-                4,
-                2,
-                52.0,
-                "low",
-                "save_for_verification",
+                summary,
+                f"Online source-backed topic: {query}",
+                f"Use the {source_count} fetched online source(s) as the evidence base before drafting.",
+                scorecard.executive_relevance,
+                scorecard.hidden_gem_value,
+                scorecard.technical_signal,
+                source_credibility,
+                scorecard.oracle_safe_fit,
+                draft_readiness,
+                float(scorecard.numeric_score + min(source_count, 12)),
+                scorecard.political_risk,
+                recommendation,
                 "candidate",
                 now,
                 now,
             ),
         )
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO topic_findings (topic_id, finding_id, relationship)
-            VALUES (?, ?, ?)
-            """,
-            (topic_id, finding_id, "operator_requested"),
-        )
-    return topic_id
+        for index, result in enumerate(report.results):
+            source_id = stable_id("source_online", result.source_name, result.url)
+            finding_id = stable_id("finding_online", result.url)
+            raw_content = json.dumps(
+                {
+                    "query": query,
+                    "result": asdict(result),
+                    "search_report_generated_at": report.generated_at,
+                },
+                indent=2,
+            )
+            content_hash = hashlib.sha256(raw_content.encode()).hexdigest()
+            conn.execute(
+                """
+                INSERT INTO sources (
+                    id, name, type, source_type, trust_tier, url, is_active,
+                    recurring_enabled, created_at, updated_at, notes
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    type = excluded.type,
+                    source_type = excluded.source_type,
+                    trust_tier = excluded.trust_tier,
+                    url = excluded.url,
+                    is_active = excluded.is_active,
+                    recurring_enabled = excluded.recurring_enabled,
+                    updated_at = excluded.updated_at,
+                    notes = excluded.notes
+                """,
+                (
+                    source_id,
+                    result.source_name,
+                    "public_web",
+                    "online_search",
+                    result.trust_tier,
+                    result.url,
+                    1,
+                    0,
+                    now,
+                    now,
+                    f"Fetched by custom online topic search. Provider: {result.provider}.",
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO findings (
+                    id, source_id, url, title, summary, published_at,
+                    discovered_at, content_hash, raw_content, raw_excerpt, status, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    source_id = excluded.source_id,
+                    url = excluded.url,
+                    title = excluded.title,
+                    summary = excluded.summary,
+                    published_at = excluded.published_at,
+                    discovered_at = excluded.discovered_at,
+                    content_hash = excluded.content_hash,
+                    raw_content = excluded.raw_content,
+                    raw_excerpt = excluded.raw_excerpt,
+                    status = excluded.status
+                """,
+                (
+                    finding_id,
+                    source_id,
+                    result.url,
+                    result.title,
+                    result.summary,
+                    result.published_at,
+                    now,
+                    content_hash,
+                    raw_content,
+                    result.summary[:650],
+                    "new",
+                    now,
+                ),
+            )
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO topic_findings (topic_id, finding_id, relationship)
+                VALUES (?, ?, ?)
+                """,
+                (topic_id, finding_id, "lead_source" if index == 0 else "online_search_result"),
+            )
+
+    report_path = resolve_project_path(config.storage.review_packets_dir) / week / "online_search"
+    report_path.mkdir(parents=True, exist_ok=True)
+    (report_path / f"{topic_id}_search_report.json").write_text(raw_report)
+    return topic_id, report
 
 
 def build_topic_package(
@@ -3541,22 +3622,27 @@ def build_topic_package(
     topic_id: str = "",
     query: str = "",
 ) -> Dict[str, object]:
-    """Build a package from a chosen topic card or an ad-hoc operator topic."""
+    """Build a package from a chosen topic card or a live online-search topic."""
     from ai_linkedin_automation.pilot.production_test import build_production_test_package
 
     selected_topic_id = topic_id.strip()
+    online_report = None
     if not selected_topic_id:
         cleaned_query = _word_limited_query(query)
         if not cleaned_query:
-            raise ValueError("Choose a topic or enter up to 50 words for an ad-hoc topic.")
-        selected_topic_id = _best_matching_topic(config, cleaned_query) or _create_ad_hoc_topic(
-            config,
-            cleaned_query,
-            week,
-        )
+            raise ValueError("Choose a topic or enter up to 50 words for online search.")
+        selected_topic_id, online_report = _create_online_researched_topic(config, cleaned_query, week)
     package = build_production_test_package(config, week=week, topic_id=selected_topic_id)
     reset_source_review_for_new_candidate(config, "Topic selected; review the source before approval.")
-    return asdict(package)
+    result = asdict(package)
+    if online_report:
+        result["online_search"] = {
+            "query": online_report.query,
+            "source_count": len(online_report.results),
+            "provider_errors": online_report.provider_errors,
+            "results": [asdict(item) for item in online_report.results],
+        }
+    return result
 
 
 def latest_post_image(config: Config, draft_id: str) -> Dict[str, str]:

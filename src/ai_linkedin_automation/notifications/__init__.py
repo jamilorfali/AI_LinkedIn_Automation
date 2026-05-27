@@ -1,0 +1,2 @@
+"""Local notification package generation."""
+

@@ -1,0 +1,10 @@
+weekly_schedule:
+  timezone: America/Chicago
+  package_day: friday
+  package_window_start: "12:00"
+  package_window_end: "14:00"
+  non_response_behavior:
+    no_response_means_no_post: true
+    friday_reminder: true
+    monday_follow_up: true
+    roll_draft_forward: true

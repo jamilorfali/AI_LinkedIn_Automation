@@ -1,0 +1,23 @@
+trusted_domains:
+  primary:
+    - nist.gov
+    - openai.com
+    - anthropic.com
+    - deepmind.google
+    - ai.meta.com
+    - microsoft.com
+  high_trust:
+    - hai.stanford.edu
+    - news.mit.edu
+    - arxiv.org
+  useful_but_verify:
+    - substack.com
+  social_signal_only:
+    - linkedin.com
+    - x.com
+    - twitter.com
+
+policy:
+  social_links_may_inspire_research: true
+  social_links_cannot_support_publishable_claims: true
+  new_recurring_domains_require_human_approval: true

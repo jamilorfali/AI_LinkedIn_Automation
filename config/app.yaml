@@ -1,0 +1,32 @@
+app:
+  name: ai-linkedin-automation
+  timezone: America/Chicago
+  default_run_mode: hard_zero
+  weekly_package_day: friday
+  weekly_package_window_start: "12:00"
+  weekly_package_window_end: "14:00"
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+storage:
+  sqlite_path: data/sqlite/ai_linkedin_automation.db
+  exports_dir: data/exports
+  review_packets_dir: data/review_packets
+  logs_dir: data/logs
+
+review:
+  approval_method: magic_link
+  notification_channel: outlook_email
+  approval_host: google_apps_script
+  token_expiration_hours: 120
+
+publishing:
+  target: personal_linkedin_profile
+  default_mode: assisted_manual
+  linkedin_api_enabled: false
+  require_approval_record: true
+  require_content_hash_match: true
+  text_only_first: true
+  media_publishing_enabled: false

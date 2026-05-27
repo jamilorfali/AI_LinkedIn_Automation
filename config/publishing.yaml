@@ -1,0 +1,25 @@
+publishing:
+  target: personal_linkedin_profile
+  default_mode: assisted_manual
+  linkedin_api_enabled: false
+  require_approval_record: true
+  require_content_hash_match: true
+  text_only_first: true
+  media_publishing_enabled: false
+  allowed_text_approval_actions:
+    - approve_text_only
+    - approve_text_plus_media
+    - approve_text_reject_media
+  allowed_media_approval_actions:
+    - approve_text_plus_media
+
+manual_posting:
+  output_dir: data/exports/manual_posting
+  checklist_required: true
+  archive_final_post_url: optional
+
+live_linkedin_adapter:
+  scaffolded: true
+  enabled: false
+  requires_oauth_credentials: true
+  requires_cost_guard: true

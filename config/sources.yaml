@@ -1,0 +1,180 @@
+source_policy:
+  no_social_scraping: true
+  allow_manual_social_links: true
+  require_primary_or_high_trust_for_publish: true
+  discovery_queue_requires_human_approval: true
+
+trust_tiers:
+  primary:
+    description: Original source of a claim.
+    publish_support_allowed: true
+  high_trust:
+    description: Reputable reporting, analyst, research, or expert synthesis.
+    publish_support_allowed: true
+  useful_but_verify:
+    description: Useful but requires verification before use in claims.
+    publish_support_allowed: false
+  social_signal_only:
+    description: Social media signals, not sufficient for factual claims.
+    publish_support_allowed: false
+  blocked:
+    description: Do not use.
+    publish_support_allowed: false
+
+recurring_sources:
+  - id: arxiv_ai
+    name: arXiv AI search
+    type: rss
+    source_type: arxiv
+    trust_tier: useful_but_verify
+    url: "http://export.arxiv.org/rss/cs.AI"
+    rss_url: http://export.arxiv.org/rss/cs.AI
+    is_active: true
+    enabled: true
+    notes: "Useful for paper discovery; factual claims still need careful interpretation."
+  - id: arxiv_lg
+    name: arXiv Machine Learning search
+    type: rss
+    source_type: arxiv
+    trust_tier: useful_but_verify
+    url: "http://export.arxiv.org/rss/cs.LG"
+    rss_url: http://export.arxiv.org/rss/cs.LG
+    is_active: true
+    enabled: true
+  - id: nist_ai
+    name: NIST AI
+    type: rss
+    source_type: public_rss
+    trust_tier: primary
+    url: "https://www.nist.gov/artificial-intelligence"
+    rss_url: "https://www.nist.gov/news-events/news/rss.xml"
+    is_active: true
+    enabled: true
+  - id: stanford_hai
+    name: Stanford HAI
+    type: public_web
+    source_type: rss_or_public_web
+    trust_tier: high_trust
+    url: "https://hai.stanford.edu/news"
+    is_active: true
+    enabled: true
+  - id: mit_news_ai
+    name: MIT News Artificial Intelligence
+    type: rss
+    source_type: public_rss
+    trust_tier: high_trust
+    url: "https://news.mit.edu/topic/artificial-intelligence2"
+    rss_url: "https://news.mit.edu/rss/topic/artificial-intelligence2"
+    is_active: true
+    enabled: true
+  - id: mit_technology_review_ai
+    name: MIT Technology Review AI
+    type: rss
+    source_type: news_rss
+    trust_tier: high_trust
+    url: "https://www.technologyreview.com/topic/artificial-intelligence/"
+    rss_url: "https://www.technologyreview.com/topic/artificial-intelligence/feed/"
+    is_active: true
+    enabled: true
+  - id: microsoft_research_blog
+    name: Microsoft Research Blog
+    type: rss
+    source_type: research_rss
+    trust_tier: primary
+    url: "https://www.microsoft.com/en-us/research/blog/"
+    rss_url: "https://www.microsoft.com/en-us/research/blog/feed/"
+    is_active: true
+    enabled: true
+  - id: google_research_blog
+    name: Google Research Blog
+    type: rss
+    source_type: research_rss
+    trust_tier: primary
+    url: "https://research.google/blog/"
+    rss_url: "https://research.google/blog/rss/"
+    is_active: true
+    enabled: true
+  - id: google_cloud_ai_blog
+    name: Google Cloud AI and ML Blog
+    type: rss
+    source_type: business_rss
+    trust_tier: primary
+    url: "https://cloud.google.com/blog/products/ai-machine-learning"
+    rss_url: "https://cloud.google.com/blog/products/ai-machine-learning/rss"
+    is_active: true
+    enabled: true
+  - id: nvidia_ai_blog
+    name: NVIDIA AI Blog
+    type: rss
+    source_type: industry_rss
+    trust_tier: primary
+    url: "https://blogs.nvidia.com/blog/category/deep-learning/"
+    rss_url: "https://blogs.nvidia.com/blog/category/deep-learning/feed/"
+    is_active: true
+    enabled: true
+  - id: venturebeat_ai
+    name: VentureBeat AI
+    type: rss
+    source_type: news_rss
+    trust_tier: high_trust
+    url: "https://venturebeat.com/category/ai/"
+    rss_url: "https://venturebeat.com/category/ai/feed/"
+    is_active: true
+    enabled: true
+  - id: the_verge_ai
+    name: The Verge AI
+    type: rss
+    source_type: news_rss
+    trust_tier: high_trust
+    url: "https://www.theverge.com/ai-artificial-intelligence"
+    rss_url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    is_active: true
+    enabled: true
+  - id: openai_news
+    name: OpenAI News
+    type: public_web
+    source_type: public_web
+    trust_tier: primary
+    url: "https://openai.com/news/"
+    is_active: true
+    enabled: true
+  - id: anthropic_news
+    name: Anthropic News
+    type: public_web
+    source_type: public_web
+    trust_tier: primary
+    url: "https://www.anthropic.com/news"
+    is_active: true
+    enabled: true
+  - id: google_deepmind_blog
+    name: Google DeepMind Blog
+    type: public_web
+    source_type: public_web
+    trust_tier: primary
+    url: "https://deepmind.google/discover/blog/"
+    is_active: true
+    enabled: true
+  - id: meta_ai_blog
+    name: Meta AI Blog
+    type: public_web
+    source_type: public_web
+    trust_tier: primary
+    url: "https://ai.meta.com/blog/"
+    is_active: true
+    enabled: true
+  - id: microsoft_research_ai
+    name: Microsoft Research AI
+    type: public_web
+    source_type: public_web
+    trust_tier: primary
+    url: "https://www.microsoft.com/en-us/research/theme/artificial-intelligence/"
+    is_active: true
+    enabled: true
+
+manual_sources:
+  manual_link_inbox:
+    name: Manual Link Inbox
+    type: manual
+    trust_tier: useful_but_verify
+    path: data/manual_links/inbox.csv
+    default_trust_tier: useful_but_verify

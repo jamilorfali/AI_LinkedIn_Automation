@@ -1,0 +1,63 @@
+voice:
+  default_length: short
+  short_word_target: 150-250
+  short_word_range: [150, 250]
+  medium_word_target: 300-500
+  medium_word_range: [300, 500]
+  medium_only_when_earned: true
+
+must_feel:
+  - plain_spoken
+  - down_to_earth
+  - warm
+  - kind
+  - thoughtful
+  - practical
+  - helpful
+  - executive_friendly
+  - technically_respectful_but_not_jargony
+  - non_hype
+  - informal_but_thoughtful
+  - non_technical_when_possible
+  - good_for_executives_and_technical_audiences
+  - short_first
+  - medium_only_when_topic_earns_it
+
+avoid:
+  - hype
+  - marketing_tone
+  - academic_tone
+  - academic_stiffness
+  - employer_name_dropping
+  - obvious_ai_giveaway_language
+  - partisan_politics
+  - culture_war_framing
+  - government_drama
+  - geopolitical_hot_takes
+  - workplace_awkward_commentary
+  - vendor_scorekeeping
+  - dense_technical_explanation
+  - complex_literary_language
+  - weak_claims_from_social_media
+  - semicolon_heavy_phrasing
+  - dash_heavy_structure
+
+banned_phrases:
+  - in today's rapidly evolving landscape
+  - the future of AI is
+  - delve
+  - unlock the power
+  - transformative potential
+  - paradigm shift
+  - cutting-edge technology
+  - cutting-edge solution
+  - harness the power
+  - robust ecosystem
+  - seamless integration
+  - unparalleled efficiency
+  - game-changing
+  - game changer
+  - revolutionary
+  - revolutionize
+  - navigate the complexities
+  - ever-evolving

@@ -1,0 +1,17 @@
+integrations:
+  google_sheets_api:
+    enabled: false
+    mode: disabled
+    note: Manual CSV export/import is the active v0 path.
+  microsoft_graph_email:
+    enabled: false
+    mode: disabled
+    note: v0 generates local HTML and text email files for Outlook copy/paste.
+  linkedin_api_oauth:
+    enabled: false
+    mode: disabled
+    note: Live LinkedIn publishing remains blocked by default.
+  media_generation:
+    enabled: false
+    mode: disabled
+    note: Media creation and posting require separate future approval.

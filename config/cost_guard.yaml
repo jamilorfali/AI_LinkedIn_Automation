@@ -1,0 +1,31 @@
+run_mode: hard_zero
+monthly_spend_cap_usd: 0
+
+hard_zero:
+  allow_paid_apis: false
+  allow_openai_api: false
+  allow_claude_api: false
+  allow_gemini_api: false
+  allow_linkedin_api_publish: false
+  allow_x_api: false
+  allow_paid_search_api: false
+  allow_github_hosted_actions: false
+
+free_tier_plus_guardrails:
+  enabled: false
+  monthly_spend_cap_usd: 0
+  require_manual_unlock: true
+  require_local_call_limits: true
+
+future_paid_mode:
+  enabled: false
+  require_manual_unlock: true
+  require_budget_file_change: true
+  require_approval_before_first_paid_call: true
+
+limits:
+  max_external_fetches_per_run: 100
+  max_sources_per_run: 50
+  max_manual_links_per_run: 25
+  max_llm_calls_per_run: 0
+  max_linkedin_publish_calls_per_run: 0

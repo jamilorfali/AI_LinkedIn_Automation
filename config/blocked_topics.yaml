@@ -1,0 +1,29 @@
+blocked_topics:
+  confidential_content:
+    - client names
+    - prospect names
+    - internal strategy
+    - nda material
+    - private email
+    - private slack
+    - internal slides
+    - unannounced roadmap
+  political_high_risk:
+    - election
+    - candidate
+    - partisan
+    - democrat
+    - republican
+    - culture war
+    - geopolitical hot take
+  vendor_scorekeeping:
+    - versus
+    - vs.
+    - better than
+    - beats
+    - winner
+    - leaderboard framing
+  public_post_defaults:
+    allow_neutral_business_policy: true
+    require_low_political_risk: true
+    require_vendor_neutral_framing: true

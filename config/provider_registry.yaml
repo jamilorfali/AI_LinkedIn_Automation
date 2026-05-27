@@ -1,0 +1,27 @@
+default_provider: no_api
+
+providers:
+  no_api:
+    enabled: true
+    paid_capable: false
+    description: Writes prompt packets to local files and makes no external model calls.
+  openai:
+    enabled: false
+    paid_capable: true
+    provider_category: openai_api
+    requires_cost_guard: true
+  claude:
+    enabled: false
+    paid_capable: true
+    provider_category: anthropic_api
+    requires_cost_guard: true
+  gemini:
+    enabled: false
+    paid_capable: true
+    provider_category: gemini_api
+    requires_cost_guard: true
+
+rules:
+  hard_zero_provider: no_api
+  external_model_calls_require_explicit_unlock: true
+  provider_adapters_must_call_cost_guard: true

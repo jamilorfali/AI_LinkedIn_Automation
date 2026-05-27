@@ -1,0 +1,2279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI LinkedIn Console</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f7f8;
+      --surface: #ffffff;
+      --surface-soft: #eef4f3;
+      --ink: #121821;
+      --muted: #667085;
+      --line: #d7e0e4;
+      --accent: #0f766e;
+      --accent-ink: #ffffff;
+      --accent-soft: #dff5ef;
+      --plum: #8a3d61;
+      --gold: #b26d16;
+      --ok: #157347;
+      --warn: #9a6500;
+      --bad: #b42318;
+      --shadow: 0 18px 52px rgba(18, 27, 38, .11);
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101316;
+        --surface: #1b2026;
+        --surface-soft: #232a31;
+        --ink: #f6f8fb;
+        --muted: #aab4c0;
+        --line: #35414b;
+        --accent: #5fd0bd;
+        --accent-ink: #071513;
+        --accent-soft: #173c38;
+        --plum: #d77aa8;
+        --gold: #f0b45d;
+        --ok: #6ed7a1;
+        --warn: #f1be63;
+        --bad: #ff8a80;
+        --shadow: 0 18px 52px rgba(0, 0, 0, .34);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { min-height: 100%; scroll-behavior: smooth; }
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+
+    button, input, textarea, select { font: inherit; letter-spacing: 0; }
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      cursor: pointer;
+      font-weight: 760;
+      padding: 10px 14px;
+      transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(15, 118, 110, .20); }
+    button:active { transform: translateY(0); }
+    button.secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+    button.warning { background: var(--plum); color: #fff; }
+    button.slim { min-height: 36px; padding: 8px 11px; }
+    button.is-running { opacity: .72; cursor: progress; }
+    button.is-success,
+    .journey-step.is-success {
+      outline: 3px solid color-mix(in srgb, var(--ok) 32%, transparent);
+    }
+    button.is-error,
+    .journey-step.is-error {
+      outline: 3px solid color-mix(in srgb, var(--bad) 32%, transparent);
+    }
+
+    input, textarea, select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    textarea { min-height: 148px; resize: vertical; }
+    label { display: block; color: var(--muted); font-size: .86rem; margin: 0 0 7px; }
+    p, h1, h2, h3, h4 { margin: 0; }
+    h1 { font-size: 1.28rem; font-weight: 830; }
+    h2 { font-size: 1.28rem; font-weight: 830; line-height: 1.2; }
+    h3 { font-size: 1rem; font-weight: 800; }
+    h4 { font-size: .92rem; font-weight: 800; }
+
+    .app {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+    }
+    .app-shell {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--plum));
+      color: #fff;
+      font-weight: 860;
+      flex: 0 0 auto;
+    }
+    .subhead { color: var(--muted); font-size: .9rem; max-width: 780px; }
+    .top-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+    .nav-toggle {
+      width: 42px;
+      min-width: 42px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+    .nav-toggle span { position: relative; width: 18px; height: 12px; display: block; }
+    .nav-toggle span::before,
+    .nav-toggle span::after,
+    .nav-toggle i {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 18px;
+      height: 2px;
+      border-radius: 99px;
+      background: currentColor;
+    }
+    .nav-toggle span::before { top: 0; }
+    .nav-toggle i { top: 5px; }
+    .nav-toggle span::after { bottom: 0; }
+
+    .tabbar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+    .tab {
+      min-height: 42px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+    }
+    .tab.active {
+      background: var(--surface);
+      color: var(--ink);
+      border-color: var(--line);
+      box-shadow: 0 8px 22px rgba(18, 27, 38, .08);
+    }
+
+    .screen { display: none; padding: 18px; scroll-margin-top: 92px; }
+    .screen.active { display: block; }
+    .screen-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+    .screen-head p { color: var(--muted); max-width: 760px; }
+    .section { scroll-margin-top: 92px; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+    .hero-card, .panel, .action-card, .metric, .step-card, .wizard-card, .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .hero-card { padding: 22px; display: grid; gap: 16px; }
+    .eyebrow {
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 830;
+      text-transform: uppercase;
+    }
+    .hero-title { font-size: clamp(1.7rem, 2.8vw, 2.45rem); line-height: 1.08; max-width: 820px; }
+    .hero-copy { color: var(--muted); max-width: 760px; }
+    .next-card {
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+      border-radius: 8px;
+      background: var(--accent-soft);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .next-card p { color: var(--muted); margin-top: 4px; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric { padding: 14px; }
+    .metric span { display: block; color: var(--muted); font-size: .78rem; }
+    .metric strong { display: block; margin-top: 4px; font-size: 1.45rem; line-height: 1.1; }
+
+    .showtime-banner {
+      display: grid;
+      gap: 14px;
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      border-radius: 8px;
+      background: linear-gradient(180deg, var(--accent-soft), var(--surface));
+      padding: 18px;
+    }
+    .showtime-banner h2 {
+      font-size: clamp(1.8rem, 3.2vw, 2.7rem);
+      max-width: 760px;
+      line-height: 1.04;
+    }
+    .showtime-banner p { color: var(--muted); max-width: 780px; }
+    .single-action {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 14px;
+    }
+    .single-action button {
+      min-height: 58px;
+      min-width: 190px;
+      font-size: 1rem;
+    }
+    .wizard-steps {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .journey-step {
+      min-height: 126px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 11px;
+      display: grid;
+      align-content: start;
+      gap: 6px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .journey-step:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(18, 27, 38, .10); }
+    .journey-step:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      outline-offset: 2px;
+    }
+    .journey-step .num {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-weight: 860;
+    }
+    .journey-step.done { border-color: color-mix(in srgb, var(--ok) 44%, var(--line)); }
+    .journey-step.done .num { background: color-mix(in srgb, var(--ok) 18%, var(--surface)); color: var(--ok); }
+    .journey-step.ready { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+    .journey-step.ready .num { background: var(--accent); color: var(--accent-ink); }
+    .journey-step.locked { opacity: .66; }
+    .journey-step strong { line-height: 1.14; }
+    .journey-step p { color: var(--muted); font-size: .82rem; }
+    .safety-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .safety-strip div {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 10px;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+    .safety-strip strong { display: block; color: var(--ink); margin-bottom: 2px; }
+    .draft-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, .72fr) minmax(300px, .28fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .draft-text {
+      min-height: 360px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+      white-space: pre-wrap;
+      font-size: 1.02rem;
+      line-height: 1.58;
+      overflow-wrap: anywhere;
+    }
+    .draft-text.compact {
+      min-height: 220px;
+      font-size: .96rem;
+      line-height: 1.52;
+    }
+    .edit-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .edit-chip {
+      min-height: 58px;
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+      text-align: left;
+    }
+    .edit-chip span {
+      display: block;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .source-card {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 14px;
+    }
+    .source-card dl {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 7px 10px;
+      margin: 0;
+    }
+    .source-card dt { color: var(--muted); }
+    .source-card dd { margin: 0; overflow-wrap: anywhere; }
+    .human-gate {
+      border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .gentle-alert {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      padding: 12px;
+      color: var(--muted);
+    }
+    .approval-preview {
+      display: grid;
+      grid-template-columns: minmax(240px, .38fr) minmax(0, .62fr);
+      gap: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      margin-top: 10px;
+    }
+    .approval-checklist {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .approval-check {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      color: var(--muted);
+    }
+    .approval-check strong { color: var(--ink); display: block; }
+    .approval-check .dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 900;
+    }
+    .approval-check.done .dot {
+      background: color-mix(in srgb, var(--ok) 18%, var(--surface));
+      color: var(--ok);
+    }
+    .approval-check.next .dot {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    .post-composer {
+      display: grid;
+      grid-template-columns: minmax(0, .58fr) minmax(300px, .42fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 80;
+      max-width: min(420px, calc(100vw - 36px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+      display: none;
+    }
+    .toast.show { display: block; }
+    .toast.success { border-color: color-mix(in srgb, var(--ok) 44%, var(--line)); }
+    .toast.error { border-color: color-mix(in srgb, var(--bad) 44%, var(--line)); }
+    .topic-board {
+      display: grid;
+      gap: 12px;
+    }
+    .topic-search {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+      border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line));
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 12px;
+    }
+    .topic-search input {
+      min-height: 54px;
+      font-size: 1rem;
+    }
+    .topic-search button {
+      min-height: 54px;
+      min-width: 170px;
+    }
+    .topic-category {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .topic-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .topic-card {
+      min-height: 158px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      padding: 12px;
+      color: var(--ink);
+      box-shadow: none;
+      text-align: left;
+      display: grid;
+      align-content: start;
+      gap: 6px;
+    }
+    .topic-card small { color: var(--muted); font-weight: 650; }
+    .topic-card p {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: .86rem;
+    }
+    .asset-preview {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .asset-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .grid { display: grid; gap: 12px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .panel, .action-card, .mini-card { padding: 15px; }
+    .action-card {
+      display: grid;
+      gap: 12px;
+      align-content: space-between;
+      min-height: 162px;
+    }
+    .action-card p, .mini-card p, .panel-copy, .step-card p { color: var(--muted); }
+    .kicker { color: var(--muted); font-size: .78rem; font-weight: 780; text-transform: uppercase; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .button-row > * { flex: 1 1 150px; }
+    .inline-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+
+    .quick-path {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .quick-path button {
+      flex: 1 1 150px;
+      min-height: 56px;
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+      text-align: center;
+    }
+    .quick-path span { display: none; }
+
+    .focus-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+    .focus-panel h3 { font-size: 1.08rem; }
+    .focus-panel p { color: var(--muted); max-width: 760px; }
+    .primary-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 220px));
+      gap: 8px;
+      align-items: center;
+    }
+    .maintenance-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, .44fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .maintenance-note {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+    .tool-drawer .details-body { display: grid; gap: 10px; }
+    .tool-drawer .button-row > * { flex-basis: 190px; }
+
+    .approval-focus {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    .wizard-card {
+      padding: 18px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 42%, transparent), transparent 280px),
+        var(--surface);
+    }
+    .wizard-lead {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .wizard-lead p { color: var(--muted); }
+    .setup-coach { display: grid; gap: 12px; }
+    .coach-status {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 12px;
+      display: grid;
+      gap: 4px;
+    }
+    .setup-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .setup-step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .setup-step[open] { border-color: color-mix(in srgb, var(--accent) 42%, var(--line)); }
+    .setup-step summary { display: flex; align-items: center; gap: 9px; }
+    .setup-step .details-body { display: grid; gap: 10px; }
+    .setup-step-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .setup-step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 830;
+      flex: 0 0 auto;
+    }
+    .setup-step p { color: var(--muted); }
+    .step-detail {
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+      color: var(--muted);
+    }
+    .step-detail strong { color: var(--ink); }
+    .copy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .copy-grid button, .wizard-action {
+      min-height: 50px;
+      text-align: center;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    summary {
+      cursor: pointer;
+      padding: 13px 14px;
+      font-weight: 800;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .details-body { border-top: 1px solid var(--line); padding: 14px; }
+
+    .package-list, .steps-list, .checklist-list {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    .item-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 11px;
+    }
+    .item-row strong { display: block; }
+    .path, pre {
+      font-family: var(--mono);
+      font-size: .78rem;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+    .path { color: var(--muted); margin-top: 3px; }
+    .inline-artifact-panel {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .inline-artifact-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+    .inline-artifact-panel pre {
+      min-height: 220px;
+      max-height: 430px;
+    }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: .78rem;
+      font-weight: 800;
+      background: var(--surface);
+      color: var(--muted);
+    }
+    .done, .pass, .ready { color: var(--ok); }
+    .pending, .attention, .warn { color: var(--warn); }
+    .blocked, .fail { color: var(--bad); }
+    .step-card { padding: 13px; border-left: 4px solid var(--line); }
+    .step-card.done { border-left-color: var(--ok); }
+    .step-card.pending, .step-card.attention { border-left-color: var(--warn); }
+    .step-card.blocked { border-left-color: var(--bad); }
+
+    .artifact-layout { display: grid; grid-template-columns: minmax(260px, .36fr) minmax(0, 1fr); gap: 12px; }
+    pre {
+      margin: 0;
+      min-height: 320px;
+      max-height: 580px;
+      overflow: auto;
+      padding: 16px;
+      border-radius: 8px;
+      background: #111827;
+      color: #f8fafc;
+      border: 1px solid #263244;
+    }
+    .log-box { min-height: 190px; max-height: 320px; }
+    .fine-print { color: var(--muted); font-size: .84rem; }
+
+    .nav-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(10, 16, 24, .48);
+      backdrop-filter: blur(6px);
+    }
+    .side-nav {
+      position: fixed;
+      inset: 12px auto 12px 12px;
+      z-index: 50;
+      width: min(390px, calc(100vw - 24px));
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 30px 90px rgba(12, 20, 32, .30);
+      transform: translateX(calc(-100% - 20px));
+      transition: transform .2s ease;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 16px;
+    }
+    .side-nav.open { transform: translateX(0); }
+    .side-nav-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+    .side-nav-head p, .nav-note { color: var(--muted); }
+    .nav-list { display: grid; gap: 8px; overflow: auto; }
+    .nav-list a {
+      display: grid;
+      gap: 2px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      text-decoration: none;
+      background: var(--surface-soft);
+    }
+    .nav-list small { color: var(--muted); }
+    .nav-note { border-top: 1px solid var(--line); padding-top: 12px; font-size: .86rem; }
+    body.nav-open { overflow: hidden; }
+
+    @media (max-width: 980px) {
+      .hero, .approval-focus, .approval-preview, .grid-2, .grid-3, .grid-4, .artifact-layout, .maintenance-layout, .primary-actions, .single-action, .draft-workspace, .post-composer, .safety-strip, .topic-grid { grid-template-columns: 1fr; }
+      .wizard-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tabbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .inline-form, .topic-search, .copy-grid, .next-card { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .brand { width: 100%; }
+      .top-actions { justify-content: flex-start; }
+    }
+    @media (max-width: 640px) {
+      .app { width: min(100vw - 16px, 1180px); padding-top: 8px; }
+      .screen { padding: 12px; }
+      .topbar { padding: 12px; }
+      .tabbar {
+        position: sticky;
+        top: 76px;
+        z-index: 18;
+        overflow-x: auto;
+        grid-template-columns: repeat(3, minmax(118px, 1fr));
+      }
+      .hero-card, .panel, .action-card, .wizard-card, .mini-card { padding: 13px; }
+      .metrics { grid-template-columns: 1fr; }
+      .wizard-steps, .edit-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="navBackdrop" class="nav-backdrop" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <aside id="sideNav" class="side-nav" aria-label="Workflow Navigation" aria-hidden="true" inert>
+    <div class="side-nav-head">
+      <div>
+        <div class="eyebrow">Navigation</div>
+        <h2>Console</h2>
+        <p>Use Create for the weekly work. Tools are only for maintenance.</p>
+      </div>
+      <button id="closeNavBtn" class="secondary slim">Close</button>
+    </div>
+    <nav class="nav-list">
+      <a href="#start" data-nav-link data-screen-link="start"><strong>Create</strong><small>Search, draft, review, and approve.</small></a>
+      <a href="#posting" data-nav-link data-screen-link="posting"><strong>Post</strong><small>Copy, post manually, and save the URL.</small></a>
+      <a href="#setup" data-nav-link data-screen-link="setup"><strong>Tools</strong><small>Diagnostics, files, and maintenance.</small></a>
+    </nav>
+    <p class="nav-note">Hard Zero Mode stays on. This app prepares files and records decisions. It does not spend money, send email, or publish to LinkedIn.</p>
+  </aside>
+
+  <div class="app">
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <button id="menuBtn" class="nav-toggle" aria-label="Open Workflow Navigation" aria-controls="sideNav" aria-expanded="false"><span><i></i></span></button>
+          <div class="mark" aria-hidden="true">AI</div>
+          <div>
+            <h1>LinkedIn Article Studio</h1>
+            <p class="subhead" id="headline">Loading your operating status...</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="refreshBtn" class="secondary">Refresh</button>
+        </div>
+      </header>
+
+      <nav class="tabbar" aria-label="Main app screens">
+        <button class="tab active" data-screen-target="start">Create</button>
+        <button class="tab" data-screen-target="posting">Post</button>
+        <button class="tab" data-screen-target="setup">Tools</button>
+      </nav>
+
+      <section id="start" class="screen section active" data-screen="start" aria-labelledby="start-title">
+        <div class="grid">
+          <div class="showtime-banner">
+            <div>
+              <div class="eyebrow">Start here</div>
+              <h2 id="start-title">Create a sourced LinkedIn article.</h2>
+              <p id="plainHeadline">Search a topic, build a short post plus full article, generate an image brief, approve the exact draft, then post manually.</p>
+            </div>
+            <div class="topic-search" role="search">
+              <input id="customTopicInput" maxlength="420" placeholder="Search a topic or describe what you want to write about">
+              <button id="customTopicBtn">Search & Draft</button>
+            </div>
+            <div class="single-action">
+              <div>
+                <h3 id="nextActionLabel">Loading...</h3>
+                <p id="nextActionDescription"></p>
+              </div>
+              <button id="nextActionBtn">Start</button>
+            </div>
+            <div class="safety-strip">
+              <div><strong>No surprise spending</strong>Hard Zero Mode keeps paid providers blocked.</div>
+              <div><strong>No surprise posting</strong>LinkedIn posting still requires you.</div>
+              <div><strong>Approval is exact</strong>Editing creates a new draft version before approval.</div>
+            </div>
+          </div>
+          <details class="tool-drawer">
+            <summary>Show workflow checkpoints</summary>
+            <div class="details-body">
+              <div id="journeySteps" class="wizard-steps" aria-label="Guided workflow steps"></div>
+            </div>
+          </details>
+          <div class="panel">
+            <div class="screen-head" style="margin-bottom:10px;">
+              <div>
+                <h3>Suggested topics</h3>
+                <p>Pick a sourced topic card, or use the search bar above for an interest you have right now.</p>
+              </div>
+            </div>
+            <div class="button-row" style="margin-top:10px;">
+              <button id="fullRefreshTopicsBtn" class="warning">Full Refresh Topics</button>
+              <button id="undoTopicRefreshBtn" class="secondary">Undo Refresh</button>
+            </div>
+            <p id="topicRefreshFeedback" class="fine-print" style="margin-top:10px;">Use full refresh only when the whole board feels wrong. Undo restores the previous build.</p>
+            <div id="topicBoard" class="topic-board" style="margin-top:12px;"></div>
+          </div>
+          <aside class="metrics" id="metrics"></aside>
+        </div>
+      </section>
+
+      <section id="setup" class="screen section" data-screen="setup" aria-labelledby="control-title">
+        <div class="screen-head">
+          <div>
+            <h2 id="control-title">Settings</h2>
+            <p>Use this only when something needs setup, repair, or a deeper check. Day-to-day work happens in Build, Approve, and Post.</p>
+          </div>
+          <span class="status-chip" id="desktopStatus">Checking desktop app</span>
+        </div>
+        <div class="maintenance-layout">
+          <div class="focus-panel">
+            <div>
+              <div class="kicker">Touch-Free Control Center</div>
+              <h3>Keep the console ready.</h3>
+              <p>Prepare Everything rebuilds the local launcher, approval setup files, QA artifacts, schedule files, and readiness reports. Full E2E Test runs the local workflow through approval and final package creation.</p>
+            </div>
+            <div class="primary-actions">
+              <button id="setupBtn">Prepare Everything</button>
+              <button id="appE2eBtn">Run Full E2E Test</button>
+              <button id="diagnosticsBtn" class="secondary">Run System Check</button>
+            </div>
+            <p class="fine-print" id="desktopPath"></p>
+          </div>
+          <div class="maintenance-note">
+            <h3>Advanced maintenance</h3>
+            <p class="panel-copy">These are here when you need repair or verification. They stay out of the main workflow.</p>
+            <details class="tool-drawer">
+              <summary>Show maintenance tools</summary>
+              <div class="details-body">
+                <div class="button-row">
+                  <button id="desktopInstallBtn" class="secondary">Put App On Desktop</button>
+                  <button id="desktopBtn" class="secondary">Repair Desktop App</button>
+                  <button id="qaBtn" class="secondary">Run Safe Approval Test</button>
+                  <button id="scheduleBtn" class="secondary">Make Daily Schedule</button>
+                  <button id="locusStatusBtn" class="secondary">View Locus Status</button>
+                  <button id="locusCapabilityBtn" class="secondary">Test Locus</button>
+                  <button id="locusE2eBtn" class="secondary">Run Locus E2E</button>
+                  <button id="locusWorkbenchBtn" class="secondary">Export Locus Map</button>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="weekly-pilot" class="screen section" data-screen="weekly-pilot" aria-labelledby="pilot-title">
+        <div class="screen-head">
+          <div>
+            <h2 id="pilot-title">Draft</h2>
+            <p>This is the main workbench. Build the draft, check the source, then tune the wording with buttons.</p>
+          </div>
+        </div>
+        <div class="draft-workspace">
+          <div class="grid">
+            <div class="focus-panel">
+              <div>
+                <div class="kicker">One-click builder</div>
+                <h3>Let the workflow build the draft for you.</h3>
+                <p>The Locus-backed workflow picks a candidate, refreshes source intelligence, writes a draft, and prepares approval files without sending email, calling paid models, or posting anywhere.</p>
+              </div>
+              <div class="primary-actions">
+                <button id="buildTestBtn">Build My Draft</button>
+                <button id="nextTopicBtn" class="secondary">Try Another Topic</button>
+                <button id="goApproveBtn" class="secondary">Go To Approve</button>
+                <button id="runPilotBtn" class="secondary">Refresh Sources</button>
+              </div>
+              <div id="draftNextStep" class="gentle-alert">Build a draft to unlock source review, button edits, approval, and posting.</div>
+            </div>
+
+            <div class="panel">
+              <h3>Draft Preview</h3>
+              <p class="panel-copy" id="draftMeta">Build a draft to see it here.</p>
+              <div id="draftText" class="draft-text">No draft yet. Click Build My Draft.</div>
+            </div>
+          </div>
+
+          <aside class="grid">
+            <div class="source-card">
+              <div>
+                <div class="kicker">Human checkpoint</div>
+                <h3>Source and topic</h3>
+              </div>
+              <dl id="sourceFacts">
+                <dt>Topic</dt><dd>Not built yet.</dd>
+              </dl>
+              <div class="button-row">
+                <button id="markSourceReviewBtn">Source Looks OK</button>
+                <button id="viewRunbookBtn" class="secondary">Show Details</button>
+              </div>
+              <p id="sourceReviewFeedback" class="fine-print">Waiting for human source review.</p>
+            </div>
+
+            <div class="human-gate">
+              <div>
+                <h3>Edit with buttons</h3>
+                <p class="panel-copy">Each button creates a new draft version. After edits, approve the new exact version.</p>
+              </div>
+              <div id="editButtons" class="edit-grid"></div>
+            </div>
+
+            <div class="gentle-alert">
+              Pick "Try Another Topic" if the source feels weak, too technical, or not like something you would say publicly.
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="approval" class="screen section" data-screen="approval" aria-labelledby="approval-title">
+        <div class="screen-head">
+          <div>
+            <h2 id="approval-title">Approve</h2>
+            <p>Approve only after the draft on screen sounds right. The approval is tied to that exact draft version.</p>
+          </div>
+          <button id="localApproveTopBtn">Approve Draft</button>
+        </div>
+
+        <div class="approval-focus">
+          <div class="wizard-card">
+            <div class="wizard-lead">
+              <div class="eyebrow">Human approval gate</div>
+              <h3>Nothing becomes final until you approve it.</h3>
+              <p>Use the draft buttons first if it needs a different tone. When it is ready, approve it here and the app will build the final posting package.</p>
+              <div id="approvalDraftSummary" class="gentle-alert">No draft loaded yet.</div>
+              <div class="button-row" style="margin-top:12px;">
+                <button id="localApproveBtn">Approve Draft & Make Package</button>
+                <button id="needsEditBtn" class="secondary">Needs Edits</button>
+                <button id="pickDifferentTopicBtn" class="secondary">Pick Different Topic</button>
+                <button id="viewDeploymentBtn" class="secondary">Optional Phone Approval</button>
+              </div>
+              <div class="approval-preview">
+                <div>
+                  <h3>Before you approve</h3>
+                  <div id="approvalReadinessList" class="approval-checklist" style="margin-top:10px;"></div>
+                </div>
+                <div>
+                  <h3>Exact post text that will be copied</h3>
+                  <div id="approvalCopyPreview" class="draft-text compact" style="margin-top:10px;">Build a draft first.</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="approvalCoach" class="setup-coach">
+              <div class="coach-status">
+                <h3 id="approvalCoachTitle">Optional phone approval setup</h3>
+                <p id="approvalCoachSummary" class="panel-copy">Press Optional Phone Setup only if you want Google Apps Script magic links.</p>
+              </div>
+              <div id="approvalCoachSteps" class="setup-steps">
+                <details class="setup-step" open>
+                  <summary><span class="setup-step-number">1</span><h4>Create the Google Sheet</h4></summary>
+                  <div class="details-body">
+                    <p>Click Open New Google Sheet. In the new Google Sheet, rename the file to AI LinkedIn Review Queue. Rename the bottom tab from Sheet1 to ReviewQueue. Click cell A1, then paste the copied header row there.</p>
+                    <div class="button-row">
+                      <button id="openSheetBtn" class="secondary wizard-action">Open New Google Sheet</button>
+                      <button id="copySheetHeaderBtn" class="secondary wizard-action">Copy Sheet Header for Cell A1</button>
+                    </div>
+                    <p class="step-detail"><strong>Success looks like this:</strong> row 1 contains many column names, starting with review_id and draft_id.</p>
+                  </div>
+                </details>
+                <details class="setup-step">
+                  <summary><span class="setup-step-number">2</span><h4>Open Apps Script from that Sheet</h4></summary>
+                  <div class="details-body">
+                    <p>Stay inside the Google Sheet. In the Google Sheet menu, click Extensions, then Apps Script. A new Apps Script browser tab opens. This is where the next three copied files go.</p>
+                  </div>
+                </details>
+                <details class="setup-step">
+                  <summary><span class="setup-step-number">3</span><h4>Replace Code.gs</h4></summary>
+                  <div class="details-body">
+                    <p>In Apps Script, click Code.gs in the left file list. Select all starter code in that file, delete it, then paste the Code.gs content copied from this console.</p>
+                    <div class="button-row">
+                      <button id="copyCodeBtn" class="secondary wizard-action">Copy Code.gs</button>
+                      <button id="copySyncTokenBtn" class="secondary wizard-action">Copy Sync Token</button>
+                    </div>
+                    <p class="step-detail"><strong>Paste location:</strong> Apps Script editor -> Code.gs file.</p>
+                  </div>
+                </details>
+                <details class="setup-step">
+                  <summary><span class="setup-step-number">4</span><h4>Add Index.html</h4></summary>
+                  <div class="details-body">
+                    <p>In Apps Script, click the plus button next to Files, choose HTML, and name it exactly Index. Apps Script will create Index.html. Paste the copied Index.html content into that new file.</p>
+                    <button id="copyIndexBtn" class="secondary wizard-action">Copy Index.html</button>
+                    <p class="step-detail"><strong>Paste location:</strong> Apps Script editor -> new HTML file named Index.</p>
+                  </div>
+                </details>
+                <details class="setup-step">
+                  <summary><span class="setup-step-number">5</span><h4>Replace appsscript.json</h4></summary>
+                  <div class="details-body">
+                    <p>In Apps Script, click Project Settings, turn on Show appsscript.json manifest file in editor, then return to the editor. Open appsscript.json, select everything, and paste the copied manifest.</p>
+                    <button id="copyManifestBtn" class="secondary wizard-action">Copy appsscript.json</button>
+                    <p class="step-detail"><strong>Paste location:</strong> Apps Script editor -> appsscript.json file.</p>
+                  </div>
+                </details>
+                <details class="setup-step">
+                  <summary><span class="setup-step-number">6</span><h4>Deploy as a web app</h4></summary>
+                  <div class="details-body">
+                    <p>First click Save in Apps Script. Unsaved Code.gs, Index.html, or appsscript.json changes can make Google show only API Executable. If this is your existing approval app, click Deploy, Manage deployments, the pencil icon, Version, New version, then Deploy. This keeps the same /exec URL you already saved.</p>
+                    <p>If you are creating the approval app for the first time, click Deploy, then New deployment. Click the gear icon beside Select type and choose Web app.</p>
+                    <p>If you still only see API Executable, close that popup, reload Apps Script, confirm Code.gs contains doGet, confirm appsscript.json contains a webapp block, save again, then open Deploy -> New deployment again.</p>
+                    <p>Set Execute as to Me. For Who has access, choose Anyone if available, or Anyone with Google account if that is the only option in your consumer Google account. Click Deploy, authorize when Google asks, then copy the Web app URL that ends with /exec.</p>
+                    <p class="step-detail"><strong>Important:</strong> this approval page records a decision in your Sheet. It does not publish to LinkedIn.</p>
+                  </div>
+                </details>
+                <details class="setup-step">
+                  <summary><span class="setup-step-number">7</span><h4>Save the web app URL here</h4></summary>
+                  <div class="details-body">
+                    <p>Return to this AI LinkedIn Console tab. Paste the copied /exec URL into the field below. Press Save URL. Then press Mark Approval Page Deployed.</p>
+                    <div class="inline-form">
+                      <input id="approvalUrlInput" placeholder="Paste the Apps Script /exec URL here">
+                      <button id="saveApprovalUrlBtn">Save URL</button>
+                    </div>
+                    <div class="button-row">
+                      <button id="markDeployedBtn" class="secondary">Mark Approval Page Deployed</button>
+                      <button id="showDeploymentFilesBtn" class="secondary">Show All Files Below</button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <details>
+              <summary>Current Test Package</summary>
+              <div class="details-body">
+                <p class="panel-copy">This is the candidate and draft that will go through approval. Long file paths are hidden here and available in Files.</p>
+                <div id="packageSummary" class="package-list" style="margin-top:10px;"></div>
+                <div class="button-row" style="margin-top:10px;">
+                  <button id="viewRunbookBtn2" class="secondary">View Runbook</button>
+                  <button id="viewDraftBtn" class="secondary">View Draft</button>
+                  <button id="viewShortlistBtn" class="secondary">View Shortlist</button>
+                  <button id="viewNotificationBtn" class="secondary">View Notification</button>
+                </div>
+                <div id="approvalArtifactPanel" class="inline-artifact-panel" hidden>
+                  <div class="inline-artifact-head">
+                    <h4 id="approvalArtifactTitle">Package file</h4>
+                    <div class="button-row">
+                      <button id="copyApprovalArtifactBtn" class="secondary slim">Copy Text</button>
+                      <button id="openApprovalMagicLinkBtn" class="secondary slim" hidden>Open Approval Link</button>
+                    </div>
+                  </div>
+                  <p id="approvalArtifactHint" class="fine-print">Selected package file appears here without leaving Approve.</p>
+                  <pre id="approvalArtifactPreview">Choose one of the file buttons above.</pre>
+                </div>
+              </div>
+            </details>
+
+            <details open>
+              <summary>Phone Approval Sync</summary>
+              <div class="details-body">
+                <p class="panel-copy">Use this when you want to approve from your phone, tablet, or another laptop. The console uploads the review queue to the Google web app and imports the decision back. You should not need to open the Sheet manually.</p>
+                <div class="button-row" style="margin-top:10px;">
+                  <button id="verifyPhoneAppBtn" class="secondary">Verify Phone App</button>
+                  <button id="copySyncTokenBtn2" class="secondary">Copy Sync Token</button>
+                  <button id="syncPhoneBtn">Sync to Phone Approval</button>
+                  <button id="importPhoneBtn" class="secondary">Import Phone Decision</button>
+                  <button id="markPhoneBtn" class="secondary">Mark Phone Test Done</button>
+                </div>
+                <p id="phoneSyncFeedback" class="fine-print" style="margin-top:10px;">Phone sync status will appear here.</p>
+                <details class="tool-drawer" style="margin-top:12px;">
+                  <summary>Manual CSV fallback</summary>
+                  <div class="details-body">
+                    <p class="panel-copy">Only use this if the web app sync endpoint is not deployed yet.</p>
+                    <label for="sheetCsvText" style="margin-top:12px;">Paste exported ReviewQueue CSV</label>
+                    <textarea id="sheetCsvText" placeholder="Paste CSV content from Google Sheets here"></textarea>
+                    <div class="button-row" style="margin-top:10px;">
+                      <button id="validateCsvBtn" class="secondary">Validate CSV</button>
+                      <button id="importCsvBtn" class="secondary">Import CSV Decision</button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="posting" class="screen section" data-screen="posting" aria-labelledby="posting-title">
+        <div class="screen-head">
+          <div>
+            <h2 id="posting-title">Post</h2>
+            <p>The app prepares the final copy. You still do the LinkedIn post yourself, then save the URL here.</p>
+          </div>
+        </div>
+        <div class="post-composer">
+          <div class="panel">
+            <h3>Final Copy</h3>
+              <p class="panel-copy">Approve first. Then make the package, copy the text, and open LinkedIn.</p>
+              <div id="finalCopyPreview" class="draft-text" style="min-height:240px;">Approve a draft to prepare final copy.</div>
+            <label for="manualDraftId" style="margin-top:12px;">Draft ID, optional</label>
+            <div class="inline-form">
+              <input id="manualDraftId" placeholder="Leave blank to use the latest draft">
+              <button id="manualPackageBtn">Make Package</button>
+            </div>
+            <div class="button-row" style="margin-top:10px;">
+              <button id="copyDraftBtn" class="secondary">Copy Post Text</button>
+              <button id="copyOpenLinkedInBtn">Copy & Open LinkedIn</button>
+              <button id="copyAbstractBtn" class="secondary">Copy Abstract</button>
+              <button id="copySourceLinkBtn" class="secondary">Copy Source Link</button>
+              <button id="openLinkedInBtn" class="secondary">Open LinkedIn</button>
+            </div>
+            <p id="packageFeedback" class="fine-print" style="margin-top:10px;">Package status will appear here.</p>
+          </div>
+          <div class="panel">
+            <h3>Optional Image</h3>
+            <p class="panel-copy">Create an original PG-rated abstract image for the post. No third-party image is used.</p>
+            <div id="imagePreview" class="asset-preview" style="margin-top:12px;">No image generated yet.</div>
+            <div class="button-row" style="margin-top:10px;">
+              <button id="generateImageBtn" class="secondary">Generate Safe Image</button>
+              <button id="copyImagePathBtn" class="secondary">Copy Image Path</button>
+            </div>
+            <p id="imageFeedback" class="fine-print" style="margin-top:10px;">Image safety status will appear here.</p>
+          </div>
+          <div class="panel">
+            <h3>Save What Happened</h3>
+            <p class="panel-copy">After the post is live, paste its URL here. This is the only keyboard step left because LinkedIn owns the final URL.</p>
+            <label for="postUrlInput" style="margin-top:12px;">LinkedIn post URL</label>
+            <input id="postUrlInput" placeholder="Paste LinkedIn post URL after posting">
+            <label for="engagementText" style="margin-top:12px;">Engagement note, optional</label>
+            <textarea id="engagementText" style="min-height:88px;" placeholder="Example: 120 impressions, 4 reactions, 1 comment after first hour"></textarea>
+            <button id="archiveBtn" class="warning" style="margin-top:10px;">Save Final URL</button>
+          </div>
+          <div class="panel">
+            <h3>LinkedIn Automation</h3>
+            <p class="panel-copy">The console automates final copy, image prep, approval records, and archive tracking. Direct LinkedIn API posting stays locked until a LinkedIn developer app, OAuth token, approved posting scope, and explicit safety switch are configured.</p>
+            <div class="package-list" style="margin-top:10px;">
+              <div class="package-card warn"><strong>Direct API Post</strong><span>Disabled by safety config.</span></div>
+              <div class="package-card pass"><strong>Assisted Post</strong><span>Copy text, open LinkedIn, then save the final URL.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="progress" class="screen section" data-screen="progress" aria-labelledby="progress-title">
+        <div class="screen-head">
+          <div>
+            <h2 id="progress-title">Plain-English Steps</h2>
+            <p>Use this only when you want the detailed gate list. The Today tab keeps the main flow shorter.</p>
+          </div>
+          <button id="progressSourceReviewBtn" class="secondary slim">Mark Source Review Done</button>
+        </div>
+        <div class="grid grid-2">
+          <div class="panel">
+            <h3>Next Human Steps</h3>
+            <div id="plainSteps" class="steps-list" style="margin-top:10px;"></div>
+          </div>
+          <div class="panel">
+            <h3>Checklist</h3>
+            <div id="checklist" class="checklist-list" style="margin-top:10px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="artifacts" class="screen section" data-screen="artifacts" aria-labelledby="artifacts-title">
+        <div class="screen-head">
+          <div>
+            <h2 id="artifacts-title">Files and Activity</h2>
+            <p>Open generated runbooks, approval setup files, reports, and posting packages when you need detail.</p>
+          </div>
+        </div>
+        <div class="artifact-layout">
+          <div class="grid">
+            <div class="panel">
+              <h3>Artifact Viewer</h3>
+              <label for="artifactSelect" style="margin-top:12px;">Generated artifact</label>
+              <select id="artifactSelect"></select>
+              <div class="button-row" style="margin-top:10px;">
+                <button id="viewArtifactBtn" class="secondary">View Selected</button>
+                <button id="copyArtifactBtn" class="secondary">Copy Path</button>
+              </div>
+              <p class="panel-copy" style="margin-top:12px;">Google Apps Script deployment and LinkedIn posting still happen outside the console. This app prepares the files and records outcomes.</p>
+            </div>
+            <section id="activity" aria-labelledby="activity-title">
+              <div class="panel">
+                <h3 id="activity-title">Activity</h3>
+                <p class="panel-copy">Recent button results appear here in plain text.</p>
+                <pre id="output" class="log-box" style="margin-top:10px;">Ready.</pre>
+              </div>
+            </section>
+          </div>
+          <pre id="artifactPreview">Select an artifact to preview it here.</pre>
+        </div>
+      </section>
+
+      <div hidden id="uiContractAnchors">
+        Build Live Test Package
+        Build Production Test Package
+        Weekly Pilot
+        Live Testing Readiness
+        Next Best Action
+        Start Here
+        Make this week's LinkedIn post
+        Build My Draft
+        Source Looks OK
+        Pick this week's topic
+        Build From My Topic
+        Generate Safe Image
+        Copy Abstract
+        Copy Source Link
+        Copy & Open LinkedIn
+        Edit with buttons
+        Approve Draft & Make Package
+        Phone Approval Sync
+        Verify Phone App
+        Copy Sync Token
+        Touch-Free Control Center
+        Workflow Navigation
+        Production Pilot
+        AI Workflow Engine
+        No terminal needed
+        Copy Sheet Header
+        Copy Code.gs
+        Copy Index.html
+        Copy appsscript.json
+        Open New Google Sheet
+        Approve Locally & Build Package
+        Approve Locally
+        Use local approval for the least maintenance
+        Run Full E2E Test
+        Run Locus E2E
+        /api/business/home
+        /api/business/approval-deployment
+        /api/business/approval-setup-guide
+        /api/business/import-review-queue-content
+        /api/business/sync-review-queue-to-webapp
+        /api/business/import-webapp-decisions
+        /api/business/verify-approval-webapp
+        /api/business/approval-sync-setup
+        /api/business/approve-locally
+        /api/business/apply-draft-preset
+        /api/business/build-next-topic-package
+        /api/business/build-topic-package
+        /api/business/full-refresh-topics
+        /api/business/undo-topic-refresh
+        /api/business/topic-board
+        /api/business/generate-post-image
+        /api/business/run-application-e2e-test
+        /api/business/run-locus-e2e-test
+        /api/business/run-touch-free-setup
+        /api/business/build-desktop-launcher
+        /api/business/install-desktop-icon
+        /api/business/run-functional-diagnostics
+        /api/business/run-approval-qa
+        /api/locus-status
+        /api/locus-capability-check
+        /api/locus-workbench-package
+        /api/live-readiness
+        /api/build-live-test-package
+        /api/pilot-checklist
+        /api/run-production-pilot
+        /api/validate-review-queue
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let home = null;
+    let approvalGuide = null;
+    let approvalBundle = null;
+    let topicBoard = null;
+    let approvalArtifactText = '';
+    let approvalMagicLink = '';
+    const output = document.getElementById('output');
+    const artifactPreview = document.getElementById('artifactPreview');
+    const toast = document.getElementById('toast');
+    const menuBtn = document.getElementById('menuBtn');
+    const closeNavBtn = document.getElementById('closeNavBtn');
+    const sideNav = document.getElementById('sideNav');
+    const navBackdrop = document.getElementById('navBackdrop');
+
+    function setNavigation(open) {
+      sideNav.classList.toggle('open', open);
+      sideNav.setAttribute('aria-hidden', String(!open));
+      sideNav.inert = !open;
+      menuBtn.setAttribute('aria-expanded', String(open));
+      navBackdrop.hidden = !open;
+      document.body.classList.toggle('nav-open', open);
+      if (open) closeNavBtn.focus();
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('[data-screen]').forEach(section => {
+        section.classList.toggle('active', section.dataset.screen === screenId);
+      });
+      document.querySelectorAll('[data-screen-target]').forEach(button => {
+        button.classList.toggle('active', button.dataset.screenTarget === screenId);
+      });
+      const target = document.getElementById(screenId);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function log(message, isError = false) {
+      const stamp = new Date().toLocaleTimeString();
+      output.textContent = `[${stamp}] ${isError ? 'ERROR: ' : ''}${message}\n\n${output.textContent}`;
+    }
+
+    function showToast(message, type = 'success') {
+      const cleanMessage = String(message || '').replace(/\s+/g, ' ').trim();
+      toast.textContent = cleanMessage.length > 420 ? `${cleanMessage.slice(0, 417)}...` : cleanMessage;
+      toast.className = `toast show ${type}`;
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => {
+        toast.className = 'toast';
+      }, 4200);
+    }
+
+    function apiErrorMessage(text, fallback) {
+      if (!text) return fallback || 'Request failed.';
+      try {
+        const payload = JSON.parse(text);
+        return payload.error || payload.message || text;
+      } catch {
+        return text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || fallback || 'Request failed.';
+      }
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, options);
+      const text = await response.text();
+      if (!response.ok) throw new Error(apiErrorMessage(text, response.statusText));
+      try { return JSON.parse(text); } catch { return { text }; }
+    }
+
+    function summarizeResult(path, data) {
+      if (data.summary) return data.summary;
+      if (data.result) return `${path}: ${data.result}`;
+      if (data.status) return `${path}: ${data.status}`;
+      return `${path} completed.`;
+    }
+
+    async function post(path, body = {}) {
+      log(`Running ${path}`);
+      const data = await api(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      log(`${summarizeResult(path, data)}\n${JSON.stringify(data, null, 2)}`);
+      await refresh();
+      return data;
+    }
+
+    function successMessageFor(path, data) {
+      if (path === 'markSourceReviewBtn' || path === 'progressSourceReviewBtn') return 'Source review saved. Moving to Approve.';
+      if (path === 'goApproveBtn') return 'Moved to approval.';
+      if (path === 'verifyPhoneAppBtn') return data?.summary || 'Phone app checked.';
+      if (path === 'copySyncTokenBtn' || path === 'copySyncTokenBtn2') return 'Sync token copied.';
+      if (path === 'syncPhoneBtn') return 'Review queue synced to phone approval.';
+      if (path === 'importPhoneBtn') return 'Phone decision imported.';
+      if (path === 'localApproveBtn' || path === 'localApproveTopBtn') return 'Approved. Moving you to Post.';
+      if (path === 'manualPackageBtn') return 'Package ready. Stay here to copy and post.';
+      if (path === 'copyDraftBtn') return 'Post text copied.';
+      if (path === 'copyOpenLinkedInBtn') return 'Post text copied and LinkedIn opened.';
+      if (path === 'copyAbstractBtn') return 'Abstract copied.';
+      if (path === 'copySourceLinkBtn') return 'Source link copied.';
+      if (path === 'generateImageBtn') return 'Safe image generated.';
+      if (path === 'customTopicBtn') return 'Custom topic package built.';
+      if (path === 'fullRefreshTopicsBtn') return 'Topic board refreshed. Undo is available.';
+      if (path === 'undoTopicRefreshBtn') return 'Previous topic board restored.';
+      if (path === 'saveApprovalUrlBtn') return 'Approval URL saved and notification refreshed.';
+      if (path === 'viewRunbookBtn2' || path === 'viewDraftBtn' || path === 'viewShortlistBtn' || path === 'viewNotificationBtn') return 'File opened here in Approve.';
+      if (path === 'copyApprovalArtifactBtn') return 'Package file text copied.';
+      if (path === 'openApprovalMagicLinkBtn') return 'Approval link opened.';
+      if (path === 'nextActionBtn') return data?.summary || 'Ready for the next step.';
+      if (path.includes('update-pilot-checklist')) return 'Saved. This step is now marked done.';
+      if (path.includes('approve-locally')) return 'Approved. Your posting package is ready.';
+      if (path.includes('build-manual-package')) return 'Posting package ready.';
+      if (path.includes('apply-draft-preset')) return 'Draft updated. Please review and approve the new version.';
+      if (path.includes('build-topic-package') || path.includes('build-production-test-package')) return 'Draft package built.';
+      if (path.includes('generate-post-image')) return 'Safe original image generated.';
+      if (path.includes('full-refresh-topics')) return 'Topic board refreshed. Undo is available.';
+      if (path.includes('undo-topic-refresh')) return 'Previous topic board restored.';
+      if (path.includes('archive-post')) return 'Final LinkedIn URL saved.';
+      return data?.summary || data?.result || 'Done.';
+    }
+
+    function row(title, detail, className = '') {
+      return `<div class="item-row"><strong class="${className}">${escapeHtml(title)}</strong><div class="path">${escapeHtml(detail || '')}</div></div>`;
+    }
+
+    function metric(label, value, className = '') {
+      return `<div class="metric"><span>${escapeHtml(label)}</span><strong class="${className}">${escapeHtml(value)}</strong></div>`;
+    }
+
+    function artifactRows(artifacts) {
+      return Object.entries(artifacts || {})
+        .filter(([, value]) => value)
+        .map(([key, value]) => ({ key, value }));
+    }
+
+    function updateArtifacts() {
+      const select = document.getElementById('artifactSelect');
+      const rows = artifactRows(home.latest_artifacts);
+      select.innerHTML = rows.map(item =>
+        `<option value="${escapeHtml(item.value)}">${escapeHtml(item.key.replaceAll('_', ' '))}</option>`
+      ).join('');
+    }
+
+    function packageCard(title, detail, className = '') {
+      return `<div class="mini-card"><strong class="${className}">${escapeHtml(title)}</strong><p>${escapeHtml(detail || '')}</p></div>`;
+    }
+
+    function journeyCard(step) {
+      return `<article class="journey-step ${escapeHtml(step.status)}" role="button" tabindex="0" data-journey-key="${escapeHtml(step.key)}">
+        <span class="num">${escapeHtml(step.number)}</span>
+        <strong>${escapeHtml(step.label)}</strong>
+        <p>${escapeHtml(step.plain)}</p>
+      </article>`;
+    }
+
+    function topicCard(topic) {
+      const searchText = [topic.title, topic.summary, topic.source_name, topic.trust_tier, topic.query].join(' ');
+      return `<button class="topic-card" data-topic-id="${escapeHtml(topic.id)}" data-topic-query="${escapeHtml(topic.query || topic.title || '')}" data-topic-search="${escapeHtml(searchText.toLowerCase())}">
+        <strong>${escapeHtml(topic.title || 'Untitled topic')}</strong>
+        <small>${escapeHtml(topic.source_name || 'Source')} - ${escapeHtml(topic.trust_tier || 'unknown')} - readiness ${escapeHtml(topic.draft_readiness || 0)}/5</small>
+        <p>${escapeHtml(topic.summary || 'No summary available yet.')}</p>
+      </button>`;
+    }
+
+    function filterTopicCards() {
+      const query = document.getElementById('customTopicInput').value.trim().toLowerCase();
+      let visible = 0;
+      document.querySelectorAll('.topic-card').forEach(card => {
+        const match = !query || (card.dataset.topicSearch || '').includes(query);
+        card.hidden = !match;
+        if (match) visible += 1;
+      });
+      document.querySelectorAll('.topic-category').forEach(category => {
+        category.hidden = category.querySelectorAll('.topic-card:not([hidden])').length === 0;
+      });
+      if (query) {
+        document.getElementById('topicRefreshFeedback').textContent = visible
+          ? `${visible} matching topic card(s). Press Search & Draft to build from your exact interest.`
+          : 'No matching cards. Press Search & Draft to create a sourced draft around this interest.';
+      }
+    }
+
+    function renderTopicBoard() {
+      const target = document.getElementById('topicBoard');
+      if (!topicBoard?.categories?.length) {
+        target.innerHTML = '<div class="gentle-alert">No topic suggestions loaded yet. Click Refresh or use Search & Draft.</div>';
+        return;
+      }
+      const refresh = topicBoard.refresh_state || {};
+      document.getElementById('topicRefreshFeedback').textContent = refresh.available
+        ? `Refreshed board active. ${refresh.seeded_topic_count || 0} replacement topics are showing. Undo restores the previous build.`
+        : 'Use full refresh only when the whole board feels wrong. Undo restores the previous build.';
+      target.innerHTML = topicBoard.categories.map(category =>
+        `<section class="topic-category">
+          <div>
+            <h3>${escapeHtml(category.label)}</h3>
+            <p class="panel-copy">${escapeHtml(category.description)}</p>
+          </div>
+          <div class="topic-grid">${(category.topics || []).map(topicCard).join('')}</div>
+        </section>`
+      ).join('');
+      document.querySelectorAll('[data-topic-id]').forEach(button => {
+        button.onclick = () => runButtonAction(
+          button,
+          () => buildTopicPackage(button.dataset.topicId || '', button.dataset.topicQuery || ''),
+          () => 'Draft built from the selected topic. Moving you to Draft.'
+        );
+      });
+      filterTopicCards();
+    }
+
+    function bindJourneyCards() {
+      document.querySelectorAll('[data-journey-key]').forEach(card => {
+        card.onclick = () => {
+          flashElement(card, 'success');
+          handleJourneyClick(card.dataset.journeyKey);
+          showToast('Moved to the right workflow step.', 'success');
+        };
+        card.onkeydown = event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            flashElement(card, 'success');
+            handleJourneyClick(card.dataset.journeyKey);
+            showToast('Moved to the right workflow step.', 'success');
+          }
+        };
+      });
+    }
+
+    function renderSourceFacts(draft) {
+      if (!draft?.ready) {
+        return '<dt>Topic</dt><dd>Not built yet.</dd><dt>Next</dt><dd>Click Build My Draft.</dd>';
+      }
+      return [
+        ['Topic', draft.topic_title],
+        ['Source', `${draft.source_name} (${draft.trust_tier})`],
+        ['Risk', draft.political_risk],
+        ['Readiness', `${draft.draft_readiness}/5`],
+        ['Approved', draft.approved ? 'Yes, this exact version is approved.' : 'Not yet.']
+      ].map(([name, value]) => `<dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value || '')}</dd>`).join('');
+    }
+
+    function renderEditButtons(draft) {
+      const presets = draft?.edit_presets || [];
+      if (!draft?.ready) return '<p class="panel-copy">Build a draft first. Then edit buttons appear here.</p>';
+      return presets.map(preset =>
+        `<button class="edit-chip" data-edit-preset="${escapeHtml(preset.key)}">${escapeHtml(preset.label)}<span>${escapeHtml(preset.description)}</span></button>`
+      ).join('');
+    }
+
+    function renderDraftWorkspace() {
+      const draft = home.draft_workspace || {};
+      const content = draft.content || 'No draft yet. Click Build My Draft.';
+      const finalText = draft.final_post_text || content;
+      const meta = draft.ready
+        ? `Draft ${draft.draft_id} - version ${draft.version} - ${draft.word_count} words - ${draft.approved ? 'approved' : 'needs approval'}`
+        : draft.message || 'No draft exists yet.';
+      document.getElementById('draftMeta').textContent = meta;
+      document.getElementById('draftText').textContent = content;
+      document.getElementById('finalCopyPreview').textContent = finalText;
+      document.getElementById('sourceFacts').innerHTML = renderSourceFacts(draft);
+      document.getElementById('editButtons').innerHTML = renderEditButtons(draft);
+      document.querySelectorAll('[data-edit-preset]').forEach(button => {
+        button.onclick = async () => {
+          button.classList.add('is-running');
+          button.disabled = true;
+          try {
+            await applyDraftPreset(button.dataset.editPreset);
+            button.classList.add('is-success');
+            showToast('Draft updated. Review and approve the new version.', 'success');
+          } catch (err) {
+            button.classList.add('is-error');
+            showToast(err.message || String(err), 'error');
+          } finally {
+            button.classList.remove('is-running');
+            button.disabled = false;
+            setTimeout(() => button.classList.remove('is-success', 'is-error'), 1600);
+          }
+        };
+      });
+      document.getElementById('approvalDraftSummary').textContent = draft.ready
+        ? `${draft.topic_title} - ${draft.word_count} words - ${draft.approved ? 'already approved' : 'not approved yet'}`
+        : 'Build a draft first, then come back here to approve it.';
+      document.getElementById('manualDraftId').placeholder = draft.ready ? draft.draft_id : 'Leave blank to use the latest draft';
+      const sourceReview = (home.guided_steps || []).find(step => step.key === 'weekly_candidates_reviewed');
+      document.getElementById('sourceReviewFeedback').textContent = sourceReview?.status === 'done'
+        ? 'Done. Source review has been marked complete.'
+        : 'Waiting for human source review.';
+      const draftNext = document.getElementById('draftNextStep');
+      if (draft.ready && sourceReview?.status === 'done') {
+        draftNext.textContent = 'Source review is done. Use an edit button if needed, then go to Approve.';
+      } else if (draft.ready) {
+        draftNext.textContent = 'Read the source card. If it looks acceptable, click Source Looks OK.';
+      } else {
+        draftNext.textContent = 'Build a draft to unlock source review, button edits, approval, and posting.';
+      }
+      document.getElementById('approvalCopyPreview').textContent = finalText;
+      document.getElementById('approvalReadinessList').innerHTML = renderApprovalReadiness(draft, sourceReview);
+      const image = draft.post_image || {};
+      const imagePreview = document.getElementById('imagePreview');
+      if (image.image_path) {
+        imagePreview.innerHTML = `<img alt="Generated post visual" src="/api/business/artifact-file?path=${encodeURIComponent(image.image_path)}">`;
+        document.getElementById('imageFeedback').textContent = 'Image generated and safety manifest saved.';
+      } else {
+        imagePreview.textContent = 'No image generated yet.';
+        document.getElementById('imageFeedback').textContent = 'Image safety status will appear here.';
+      }
+    }
+
+    function renderApprovalReadiness(draft, sourceReview) {
+      const checks = [
+        {
+          done: Boolean(draft?.ready),
+          label: 'Draft exists',
+          detail: draft?.ready ? `Draft ${draft.draft_id}` : 'Build My Draft first.'
+        },
+        {
+          done: sourceReview?.status === 'done',
+          label: 'Source checked',
+          detail: sourceReview?.status === 'done' ? 'Marked OK by a human.' : 'Use Source Looks OK on the Draft tab.'
+        },
+        {
+          done: Boolean(draft?.ready && !draft?.approved),
+          label: 'Ready for this approval',
+          detail: draft?.approved ? 'Already approved.' : 'Approval will lock the exact version shown here.'
+        }
+      ];
+      return checks.map(item =>
+        `<div class="approval-check ${item.done ? 'done' : 'next'}">
+          <span class="dot">${item.done ? 'OK' : '!'}</span>
+          <span><strong>${escapeHtml(item.label)}</strong>${escapeHtml(item.detail)}</span>
+        </div>`
+      ).join('');
+    }
+
+    function renderHome() {
+      document.getElementById('headline').textContent = home.headline;
+      document.getElementById('plainHeadline').textContent = home.headline;
+      document.getElementById('nextActionLabel').textContent = home.next_action.label;
+      document.getElementById('nextActionDescription').textContent = home.next_action.description;
+      document.getElementById('nextActionBtn').textContent = home.next_action.button_text || 'Continue';
+
+      const counts = home.counts || {};
+      const desktop = home.desktop_launcher || {};
+      document.getElementById('metrics').innerHTML = [
+        metric('Workflow', home.stage.replaceAll('_', ' '), home.stage.includes('ready') ? 'ready' : 'warn'),
+        metric('Public findings', counts.findings ?? 0),
+        metric('Drafts made', counts.drafts ?? 0),
+        metric('Approvals saved', counts.approvals ?? 0)
+      ].join('');
+      document.getElementById('journeySteps').innerHTML = (home.journey_steps || []).map(journeyCard).join('');
+      bindJourneyCards();
+
+      const desktopText = desktop.desktop_icon_ready
+        ? 'Desktop icon ready'
+        : desktop.ready ? 'App ready, Desktop icon optional' : 'Desktop app needs repair';
+      document.getElementById('desktopStatus').textContent = desktopText;
+      document.getElementById('desktopStatus').className = `status-chip ${desktop.desktop_icon_ready ? 'done' : 'attention'}`;
+      document.getElementById('desktopPath').textContent = desktop.desktop_icon_path || desktop.app_path || '';
+
+      const pkg = home.latest_production_test || {};
+      document.getElementById('packageSummary').innerHTML = Object.keys(pkg).length ? [
+        packageCard('Status', pkg.status, pkg.status && pkg.status.includes('ready') ? 'pass' : 'warn'),
+        packageCard('Selected Topic', pkg.selected_topic_title || 'No topic selected yet.'),
+        packageCard('Draft ID', pkg.draft_id || 'No draft created yet.'),
+        packageCard('Approval URL', pkg.approval_url_configured ? 'Saved and ready.' : 'Not saved yet. Finish the wizard below.', pkg.approval_url_configured ? 'pass' : 'warn')
+      ].join('') : packageCard('No production test package yet', 'Press Make First Test Package on the Weekly tab.');
+
+      const steps = home.guided_steps || [];
+      document.getElementById('plainSteps').innerHTML = steps.map(item =>
+        `<article class="step-card ${escapeHtml(item.status)}">
+          <strong class="${escapeHtml(item.status)}">${escapeHtml(item.label)}</strong>
+          <p>${escapeHtml(item.next_action)}</p>
+        </article>`
+      ).join('');
+
+      const checklist = home.checklist.items || [];
+      document.getElementById('checklist').innerHTML = checklist.map(item =>
+        row(`[${item.status.toUpperCase()}] ${item.label}`, item.details, item.status === 'done' ? 'done' : item.status)
+      ).join('');
+
+      renderDraftWorkspace();
+      updateArtifacts();
+    }
+
+    async function refresh() {
+      try {
+        home = await api('/api/business/home');
+        topicBoard = await api('/api/business/topic-board');
+        renderHome();
+        renderTopicBoard();
+      } catch (err) {
+        log(err.message, true);
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function viewPath(path) {
+      if (!path) return log('Nothing to view yet.', true);
+      const data = await api(`/api/business/artifact-content?path=${encodeURIComponent(path)}`);
+      artifactPreview.textContent = data.content;
+      showScreen('artifacts');
+      log(`Viewing ${data.path}`);
+    }
+
+    function approvalLinkFromText(text) {
+      const match = String(text || '').match(/https:\/\/script\.google\.com\/[^\s<>"')]+/);
+      return match ? match[0] : '';
+    }
+
+    async function viewApprovalPackageFile(path, label) {
+      if (!path) throw new Error(`${label} is not available yet. Build or refresh the approval package first.`);
+      const data = await api(`/api/business/artifact-content?path=${encodeURIComponent(path)}`);
+      approvalArtifactText = data.content || '';
+      approvalMagicLink = approvalLinkFromText(approvalArtifactText);
+      document.getElementById('approvalArtifactTitle').textContent = label;
+      document.getElementById('approvalArtifactPreview').textContent = approvalArtifactText || 'This file is empty.';
+      document.getElementById('approvalArtifactPanel').hidden = false;
+      document.getElementById('openApprovalMagicLinkBtn').hidden = !approvalMagicLink;
+      document.getElementById('approvalArtifactHint').textContent = approvalMagicLink
+        ? 'Approval link found. Use Open Approval Link to test the Google page.'
+        : `Showing ${data.path}.`;
+      showScreen('approval');
+      log(`Viewing ${label}: ${data.path}`);
+      return data;
+    }
+
+    async function copyText(label, text) {
+      if (!text) {
+        throw new Error(`${label} is not available yet. Build or approve a draft first.`);
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand('copy');
+        helper.remove();
+      }
+      log(`Copied ${label}.`);
+    }
+
+    async function loadApprovalSetup() {
+      approvalGuide = await api('/api/business/approval-setup-guide');
+      approvalBundle = await api('/api/business/approval-deployment');
+      const codeText = approvalBundle.scripts?.['Code.gs'] || '';
+      if (!approvalBundle.output_dir || !codeText.includes('syncReviewQueue_')) {
+        log('Creating the phone approval setup files now.');
+        await post('/api/business/build-approval-deployment-package', { week: 'current' });
+        approvalGuide = await api('/api/business/approval-setup-guide');
+        approvalBundle = await api('/api/business/approval-deployment');
+      }
+      if (!approvalBundle.output_dir) throw new Error('The approval deployment package could not be created.');
+
+      document.getElementById('approvalCoachTitle').textContent = `Phone approval setup: ${approvalGuide.status.replaceAll('_', ' ')}`;
+      document.getElementById('approvalCoachSummary').textContent = approvalGuide.summary;
+      showScreen('approval');
+      return { guide: approvalGuide, data: approvalBundle };
+    }
+
+    async function viewDeploymentBundle(scrollToFiles = false) {
+      const { guide, data } = await loadApprovalSetup();
+      const guideLines = (guide.steps || []).map(step => [
+        `### ${step.label}`,
+        '',
+        `Status: ${step.status}`,
+        `What this does: ${step.description}`,
+        `Next action: ${step.action}`,
+        step.artifact_path ? `Artifact: ${step.artifact_path}` : '',
+        ''
+      ].filter(Boolean).join('\n')).join('\n');
+      artifactPreview.textContent = [
+        '# Phone Approval Setup Guide',
+        '',
+        `Status: ${guide.status}`,
+        `Summary: ${guide.summary}`,
+        '',
+        guideLines,
+        '',
+        '# Approval Page Deployment',
+        '',
+        data.checklist || '',
+        '',
+        '## Sheet Header',
+        '',
+        data.sheet_template || '',
+        '',
+        '## Code.gs',
+        '',
+        data.scripts?.['Code.gs'] || '',
+        '',
+        '## Index.html',
+        '',
+        data.scripts?.['Index.html'] || '',
+        '',
+        '## appsscript.json',
+        '',
+        data.scripts?.['appsscript.json'] || ''
+      ].join('\n');
+      log(`Viewing approval deployment package ${data.output_dir}`);
+      if (scrollToFiles) showScreen('artifacts');
+    }
+
+    async function viewLocusStatus() {
+      const data = await api('/api/locus-status');
+      artifactPreview.textContent = data.text || JSON.stringify(data, null, 2);
+      showScreen('artifacts');
+      log(`Locus engine: ${data.engine}; SDK installed: ${data.sdk_installed}`);
+    }
+
+    async function testLocusCapabilities() {
+      const data = await api('/api/locus-capability-check');
+      artifactPreview.textContent = JSON.stringify(data, null, 2);
+      showScreen('artifacts');
+      log(`Locus capability check: ${data.status}; report: ${data.markdown_path}`);
+    }
+
+    async function buildLocusWorkbenchPackage() {
+      const data = await api('/api/locus-workbench-package');
+      artifactPreview.textContent = JSON.stringify(data, null, 2);
+      showScreen('artifacts');
+      log(`Locus Workbench package: ${data.status}; manifest: ${data.manifest_path}`);
+      await refresh();
+    }
+
+    async function approveLocally() {
+      const sourceReview = (home?.guided_steps || []).find(step => step.key === 'weekly_candidates_reviewed');
+      if (sourceReview?.status !== 'done') {
+        throw new Error('Click Source Looks OK on the Draft tab before approving this draft.');
+      }
+      const draftId = home?.draft_workspace?.draft_id || '';
+      if (!draftId) {
+        throw new Error('Build a draft before approving.');
+      }
+      const data = await post('/api/business/approve-locally', {
+        draft_id: draftId,
+        action: 'approve_text_only',
+        notes: 'Approved inside the AI LinkedIn Console.',
+        build_package: true
+      });
+      if (data.manual_package_path) {
+        document.getElementById('packageFeedback').textContent = `Package ready: ${data.manual_package_path}`;
+      }
+      showScreen('posting');
+      return data;
+    }
+
+    function requirePostingReady() {
+      const draft = home?.draft_workspace || {};
+      if (!draft.ready) {
+        throw new Error('Build and approve a draft before using posting controls.');
+      }
+      if (!draft.approved) {
+        throw new Error('Approve the draft before copying final post text or opening LinkedIn.');
+      }
+      return draft;
+    }
+
+    async function copyApprovedPostText() {
+      const draft = requirePostingReady();
+      return copyText('post text', draft.final_post_text || draft.content || '');
+    }
+
+    async function copyApprovedPostTextAndOpenLinkedIn() {
+      await copyApprovedPostText();
+      window.open('https://www.linkedin.com/feed/', '_blank', 'noopener');
+      return { result: 'copied_and_opened' };
+    }
+
+    function openLinkedInAfterApproval() {
+      requirePostingReady();
+      window.open('https://www.linkedin.com/feed/', '_blank', 'noopener');
+      return { result: 'opened' };
+    }
+
+    async function applyDraftPreset(preset) {
+      if (!preset) return;
+      const data = await post('/api/business/apply-draft-preset', {
+        preset,
+        draft_id: home?.draft_workspace?.draft_id || '',
+        week: 'current'
+      });
+      showScreen('weekly-pilot');
+      return data;
+    }
+
+    async function markSourceReviewDone() {
+      if (!home?.draft_workspace?.ready) {
+        throw new Error('Build or pick a draft first, then review its source.');
+      }
+      const data = await post('/api/update-pilot-checklist', {
+        key: 'weekly_candidates_reviewed',
+        status: 'done',
+        notes: 'Human source review marked from the guided console.'
+      });
+      document.getElementById('sourceReviewFeedback').textContent = 'Done. Source review has been marked complete.';
+      await refresh();
+      showScreen('approval');
+      return data;
+    }
+
+    async function makeManualPackage() {
+      const data = await post('/api/business/build-manual-package', {
+        draft_id: document.getElementById('manualDraftId').value.trim() || home?.draft_workspace?.draft_id || ''
+      });
+      if (data.path) document.getElementById('packageFeedback').textContent = `Package ready: ${data.path}`;
+      showScreen('posting');
+      return data;
+    }
+
+    async function buildTopicPackage(topicId, query) {
+      const data = await post('/api/business/build-topic-package', {
+        week: 'current',
+        topic_id: topicId || '',
+        query: query || ''
+      });
+      showScreen('weekly-pilot');
+      return data;
+    }
+
+    async function generatePostImage() {
+      const data = await post('/api/business/generate-post-image', {
+        draft_id: home?.draft_workspace?.draft_id || ''
+      });
+      document.getElementById('imageFeedback').textContent = `${data.safety_status}: content-aware visual created at ${data.image_path}`;
+      await refresh();
+      showScreen('posting');
+      return data;
+    }
+
+    async function syncPhoneApproval() {
+      const data = await post('/api/business/sync-review-queue-to-webapp', { week: 'current' });
+      const feedback = document.getElementById('phoneSyncFeedback');
+      feedback.textContent = data.approval_link
+        ? `Synced. Open Approval Link is ready in Current Test Package, or use: ${data.approval_link}`
+        : 'Synced. View Notification to open the approval link.';
+      if (data.approval_link) {
+        approvalMagicLink = data.approval_link;
+        document.getElementById('openApprovalMagicLinkBtn').hidden = false;
+      }
+      await refresh();
+      showScreen('approval');
+      return data;
+    }
+
+    async function verifyPhoneApp() {
+      const data = await api('/api/business/verify-approval-webapp');
+      document.getElementById('phoneSyncFeedback').textContent = data.summary || JSON.stringify(data);
+      log(`${data.summary || 'Phone app checked.'}\n${JSON.stringify(data, null, 2)}`, !data.ok);
+      if (!data.ok) throw new Error(data.summary || 'Phone app is not ready yet.');
+      return data;
+    }
+
+    async function copySyncToken() {
+      const data = await api('/api/business/approval-sync-setup');
+      await copyText('sync token', data.sync_token || '');
+      document.getElementById('phoneSyncFeedback').textContent =
+        `Sync token copied. In Apps Script Project Settings -> Script properties, add ${data.property_name} and paste this value.`;
+      return { result: 'copied', summary: `Sync token copied for ${data.property_name}.`, masked: data.sync_token_masked };
+    }
+
+    async function importPhoneDecision() {
+      const data = await post('/api/business/import-webapp-decisions', { week: 'current', build_package: true });
+      const feedback = document.getElementById('phoneSyncFeedback');
+      const packageText = data.manual_package_path ? ` Package ready: ${data.manual_package_path}` : '';
+      feedback.textContent = `Imported ${data.imported || 0} decision(s).${packageText}`;
+      await refresh();
+      if (data.manual_package_path) showScreen('posting');
+      return data;
+    }
+
+    function handleJourneyClick(key) {
+      if (key === 'prepare') return showScreen('setup');
+      if (key === 'build' || key === 'source_review' || key === 'edit') return showScreen('weekly-pilot');
+      if (key === 'approve') return showScreen('approval');
+      if (key === 'package' || key === 'archive') return showScreen('posting');
+      return showScreen('start');
+    }
+
+    function flashElement(element, type = 'success') {
+      if (!element) return;
+      element.classList.remove('is-success', 'is-error');
+      element.classList.add(type === 'error' ? 'is-error' : 'is-success');
+      setTimeout(() => element.classList.remove('is-success', 'is-error'), type === 'error' ? 1800 : 1200);
+    }
+
+    async function runButtonAction(element, handler, successMessage) {
+      const originalText = element.textContent;
+      const originalHtml = element.innerHTML;
+      const hadChildren = element.children.length > 0;
+      element.classList.remove('is-success', 'is-error');
+      element.classList.add('is-running');
+      element.setAttribute('aria-busy', 'true');
+      element.disabled = true;
+      try {
+        const result = await handler(element);
+        element.classList.remove('is-running');
+        flashElement(element, 'success');
+        const message = typeof successMessage === 'function' ? successMessage(result) : successMessage;
+        showToast(message || 'Done.', 'success');
+        return result;
+      } catch (err) {
+        element.classList.remove('is-running');
+        flashElement(element, 'error');
+        log(err.message || String(err), true);
+        showToast(err.message || String(err), 'error');
+      } finally {
+        element.disabled = false;
+        element.removeAttribute('aria-busy');
+        if (hadChildren) {
+          element.innerHTML = originalHtml;
+        } else {
+          element.textContent = originalText;
+        }
+      }
+    }
+
+    menuBtn.onclick = () => setNavigation(true);
+    closeNavBtn.onclick = () => setNavigation(false);
+    navBackdrop.onclick = () => setNavigation(false);
+    document.querySelectorAll('[data-nav-link]').forEach(link => {
+      link.addEventListener('click', () => {
+        const screen = link.dataset.screenLink;
+        setNavigation(false);
+        if (screen) showScreen(screen);
+      });
+    });
+    document.querySelectorAll('[data-screen-target]').forEach(button => {
+      button.addEventListener('click', () => {
+        showScreen(button.dataset.screenTarget);
+        flashElement(button, 'success');
+      });
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') setNavigation(false);
+    });
+
+    function bindClick(id, handler) {
+      const element = document.getElementById(id);
+      if (!element) return;
+      element.onclick = () => runButtonAction(element, handler, result => successMessageFor(id, result));
+    }
+
+    bindClick('refreshBtn', refresh);
+    bindClick('setupBtn', () => post('/api/business/run-touch-free-setup', { week: 'current', include_approval_qa: true }));
+    bindClick('appE2eBtn', () => post('/api/business/run-application-e2e-test', { week: 'current', approval_action: 'approve_text_only' }));
+    bindClick('diagnosticsBtn', () => post('/api/business/run-functional-diagnostics'));
+    bindClick('desktopBtn', () => post('/api/business/build-desktop-launcher'));
+    bindClick('desktopInstallBtn', () => post('/api/business/install-desktop-icon'));
+    bindClick('qaBtn', () => post('/api/business/run-approval-qa', { action: 'approve_text_only', week: 'current' }));
+    bindClick('locusStatusBtn', viewLocusStatus);
+    bindClick('locusCapabilityBtn', testLocusCapabilities);
+    bindClick('locusE2eBtn', () => post('/api/business/run-locus-e2e-test', { week: 'current' }));
+    bindClick('locusWorkbenchBtn', buildLocusWorkbenchPackage);
+    bindClick('runPilotBtn', () => post('/api/run-production-pilot', { week: 'current', dry_run: false }));
+    bindClick('buildTestBtn', async () => {
+      const data = await post('/api/build-production-test-package', { week: 'current' });
+      showScreen('weekly-pilot');
+      return data;
+    });
+    bindClick('goApproveBtn', () => {
+      showScreen('approval');
+      return { result: 'approval_opened' };
+    });
+    bindClick('nextTopicBtn', async () => {
+      const data = await post('/api/business/build-next-topic-package', { week: 'current' });
+      showScreen('weekly-pilot');
+      return data;
+    });
+    bindClick('customTopicBtn', () => {
+      const query = document.getElementById('customTopicInput').value.trim();
+      if (!query) throw new Error('Type a topic or pick one of the suggestions.');
+      if (query.split(/\s+/).filter(Boolean).length > 50) {
+        throw new Error('Please keep the custom topic to 50 words or fewer.');
+      }
+      return buildTopicPackage('', query);
+    });
+    document.getElementById('customTopicInput').addEventListener('input', filterTopicCards);
+    bindClick('fullRefreshTopicsBtn', async () => {
+      const data = await post('/api/business/full-refresh-topics', { week: 'current' });
+      document.getElementById('topicRefreshFeedback').textContent = data.summary || 'Topic board refreshed.';
+      showScreen('start');
+      return data;
+    });
+    bindClick('undoTopicRefreshBtn', async () => {
+      const data = await post('/api/business/undo-topic-refresh', {});
+      document.getElementById('topicRefreshFeedback').textContent = data.summary || 'Previous topic board restored.';
+      showScreen('start');
+      return data;
+    });
+    bindClick('scheduleBtn', () => post('/api/business/build-schedule-package'));
+    bindClick('saveApprovalUrlBtn', () => post('/api/business/save-approval-url', { week: 'current', approval_url: document.getElementById('approvalUrlInput').value.trim() }));
+    bindClick('markSourceReviewBtn', markSourceReviewDone);
+    bindClick('progressSourceReviewBtn', markSourceReviewDone);
+    bindClick('markDeployedBtn', () => post('/api/update-pilot-checklist', { key: 'apps_script_deployed', status: 'done', notes: 'Marked from business console.' }));
+    bindClick('markPhoneBtn', () => post('/api/update-pilot-checklist', { key: 'iphone_magic_link_tested', status: 'done', notes: 'Marked from business console.' }));
+    bindClick('verifyPhoneAppBtn', verifyPhoneApp);
+    bindClick('copySyncTokenBtn', copySyncToken);
+    bindClick('copySyncTokenBtn2', copySyncToken);
+    bindClick('syncPhoneBtn', syncPhoneApproval);
+    bindClick('importPhoneBtn', importPhoneDecision);
+    bindClick('validateCsvBtn', () => post('/api/business/validate-review-queue-content', { csv_content: document.getElementById('sheetCsvText').value }));
+    bindClick('importCsvBtn', () => post('/api/business/import-review-queue-content', { csv_content: document.getElementById('sheetCsvText').value }));
+    bindClick('localApproveBtn', approveLocally);
+    bindClick('localApproveTopBtn', approveLocally);
+    bindClick('needsEditBtn', () => showScreen('weekly-pilot'));
+    bindClick('pickDifferentTopicBtn', async () => {
+      const data = await post('/api/business/build-next-topic-package', { week: 'current' });
+      showScreen('weekly-pilot');
+      return data;
+    });
+    bindClick('manualPackageBtn', makeManualPackage);
+    bindClick('archiveBtn', () => post('/api/business/archive-post', {
+      draft_id: document.getElementById('manualDraftId').value.trim() || home?.draft_workspace?.draft_id || '',
+      post_url: document.getElementById('postUrlInput').value.trim(),
+      final_text: home?.draft_workspace?.final_post_text || home?.draft_workspace?.content || '',
+      engagement_snapshot: document.getElementById('engagementText').value.trim()
+    }));
+    bindClick('viewRunbookBtn', () => viewPath(home?.latest_production_test?.runbook_path || home?.latest_artifacts?.production_test_runbook));
+    bindClick('viewRunbookBtn2', () => viewApprovalPackageFile(home?.latest_production_test?.runbook_path || home?.latest_artifacts?.production_test_runbook, 'Runbook'));
+    bindClick('viewDeploymentBtn', viewDeploymentBundle);
+    bindClick('showDeploymentFilesBtn', () => viewDeploymentBundle(true));
+    bindClick('openSheetBtn', () => window.open('https://sheets.new', '_blank', 'noopener'));
+    bindClick('copySheetHeaderBtn', async () => {
+      await loadApprovalSetup();
+      return copyText('Sheet header for cell A1', approvalBundle.sheet_template || '');
+    });
+    bindClick('copyCodeBtn', async () => {
+      await loadApprovalSetup();
+      return copyText('Code.gs', approvalBundle.scripts?.['Code.gs'] || '');
+    });
+    bindClick('copyIndexBtn', async () => {
+      await loadApprovalSetup();
+      return copyText('Index.html', approvalBundle.scripts?.['Index.html'] || '');
+    });
+    bindClick('copyManifestBtn', async () => {
+      await loadApprovalSetup();
+      return copyText('appsscript.json', approvalBundle.scripts?.['appsscript.json'] || '');
+    });
+    bindClick('viewDraftBtn', () => viewApprovalPackageFile(home?.latest_production_test?.draft_path, 'Draft file'));
+    bindClick('viewShortlistBtn', () => viewApprovalPackageFile(home?.latest_production_test?.candidate_shortlist_path, 'Shortlist'));
+    bindClick('viewNotificationBtn', () => viewApprovalPackageFile(home?.latest_production_test?.notification_text_path, 'Notification'));
+    bindClick('copyApprovalArtifactBtn', () => copyText('package file text', approvalArtifactText));
+    bindClick('openApprovalMagicLinkBtn', () => {
+      if (!approvalMagicLink) throw new Error('No Google approval link is available yet. Save the /exec URL, then view the notification again.');
+      window.open(approvalMagicLink, '_blank', 'noopener');
+      return { result: 'opened' };
+    });
+    bindClick('viewArtifactBtn', () => viewPath(document.getElementById('artifactSelect').value));
+    bindClick('copyDraftBtn', copyApprovedPostText);
+    bindClick('copyOpenLinkedInBtn', copyApprovedPostTextAndOpenLinkedIn);
+    bindClick('copyAbstractBtn', () => copyText('abstract', home?.draft_workspace?.source_abstract || ''));
+    bindClick('copySourceLinkBtn', () => copyText('source link', home?.draft_workspace?.source_link_text || ''));
+    bindClick('openLinkedInBtn', openLinkedInAfterApproval);
+    bindClick('generateImageBtn', generatePostImage);
+    bindClick('copyImagePathBtn', () => copyText('image path', home?.draft_workspace?.post_image?.image_path || ''));
+    bindClick('copyArtifactBtn', async () => {
+      const path = document.getElementById('artifactSelect').value;
+      await navigator.clipboard.writeText(path);
+      log(`Copied ${path}`);
+    });
+    bindClick('nextActionBtn', async () => {
+      const key = home?.next_action?.key;
+      if (key === 'save_approval_url') {
+        showScreen('approval');
+        return document.getElementById('approvalUrlInput').focus();
+      }
+      if (key === 'build_test_package') {
+        const data = await post('/api/build-production-test-package', { week: 'current' });
+        showScreen('weekly-pilot');
+        return data;
+      }
+      if (key === 'pick_topic') {
+        showScreen('start');
+        document.getElementById('topicBoard').scrollIntoView({ block: 'start' });
+        return { summary: 'Pick one of the topic cards below, or type your own topic.' };
+      }
+      if (key === 'review_candidate') {
+        showScreen('weekly-pilot');
+        return log('Read the source card, then press Source Looks OK if it is acceptable.');
+      }
+      if (key === 'approve_locally') return approveLocally();
+      if (key === 'paste_sheet_csv') {
+        showScreen('approval');
+        return document.getElementById('sheetCsvText').focus();
+      }
+      if (key === 'import_sheet_csv') return post('/api/business/import-review-queue-content', { csv_content: document.getElementById('sheetCsvText').value });
+      if (key === 'manual_package') return makeManualPackage();
+      if (key === 'deploy_approval') return viewDeploymentBundle();
+      return post('/api/run-production-pilot', { week: 'current', dry_run: false });
+    });
+
+    window.addEventListener('load', refresh);
+  </script>
+</body>
+</html>

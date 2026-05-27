@@ -1,0 +1,31 @@
+score_scale:
+  min: 1
+  max: 5
+
+weights:
+  executive_relevance: 0.25
+  hidden_gem_value: 0.25
+  technical_signal: 0.20
+  source_credibility: 0.15
+  draft_readiness: 0.10
+  oracle_safe_fit: 0.05
+
+recommendation_rules:
+  draft_now:
+    min_weighted_score: 4.0
+    max_political_risk: low
+    min_source_credibility: 4
+    min_draft_readiness: 4
+  watch:
+    min_weighted_score: 3.0
+  save:
+    evergreen: true
+  reject:
+    political_risk: high
+
+hard_gates:
+  require_primary_or_high_trust_source_for_publish: true
+  block_high_political_risk_public_posts: true
+  block_confidential_content: true
+  block_vendor_scorekeeping: true
+  block_social_signal_only_claims: true

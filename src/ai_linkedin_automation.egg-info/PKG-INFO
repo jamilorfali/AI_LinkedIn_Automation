@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: ai-linkedin-automation
+Version: 0.1.0
+Summary: Zero-spend weekly AI LinkedIn thought leadership automation with human approval.
+Requires-Python: >=3.11
+Requires-Dist: feedparser>=6.0.11
+Requires-Dist: PyYAML>=6.0.1
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: beautifulsoup4>=4.12.0
+Requires-Dist: python-dateutil>=2.9.0
+Requires-Dist: click>=8.1.7
+Requires-Dist: requests>=2.32.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.2.0; extra == "dev"
+Requires-Dist: ruff>=0.5.0; extra == "dev"

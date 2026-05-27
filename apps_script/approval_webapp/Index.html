@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #d7dde8;
+      --accent: #1f6feb;
+      --safe: #0f766e;
+      --warn: #b45309;
+      --danger: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+      margin: 0;
+    }
+    main {
+      margin: 0 auto;
+      max-width: 760px;
+      padding: 18px;
+    }
+    header {
+      background: #172033;
+      color: #fff;
+      margin: -18px -18px 18px;
+      padding: 22px 18px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 28px; line-height: 1.1; margin-bottom: 8px; }
+    h2 { font-size: 20px; line-height: 1.25; margin-bottom: 8px; }
+    h3 { font-size: 16px; margin-bottom: 8px; }
+    .subtle { color: var(--muted); font-size: 14px; }
+    header .subtle { color: #dbeafe; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 12px 0;
+      padding: 16px;
+    }
+    .metrics {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 12px;
+    }
+    .metric {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .metric span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+    }
+    .metric strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+    .draft {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      margin: 10px 0 0;
+      max-height: 48vh;
+      overflow: auto;
+      padding: 12px;
+      white-space: pre-wrap;
+    }
+    .source {
+      border-left-color: var(--safe);
+      max-height: 32vh;
+    }
+    label {
+      color: var(--ink);
+      display: block;
+      font-weight: 700;
+      margin: 12px 0 6px;
+    }
+    textarea {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 84px;
+      padding: 10px;
+      width: 100%;
+    }
+    .actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    button {
+      appearance: none;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      min-height: 48px;
+      padding: 12px 14px;
+      text-align: left;
+      width: 100%;
+    }
+    button span {
+      display: block;
+      font-size: 13px;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+    .secondary {
+      background: #fff;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+    .warning {
+      background: var(--warn);
+      border-color: var(--warn);
+    }
+    .danger {
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+    .notice {
+      background: #ecfdf5;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      color: #134e4a;
+      padding: 12px;
+    }
+    @media (max-width: 560px) {
+      main { padding: 12px; }
+      header { margin: -12px -12px 14px; padding: 18px 12px; }
+      .metrics { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Approve This LinkedIn Draft</h1>
+      <p class="subtle">Read the post, choose one decision, then return to the AI LinkedIn Console and import the phone decision.</p>
+    </header>
+
+    <section class="card">
+      <h2><?= review.topicTitle ?></h2>
+      <div class="metrics">
+        <div class="metric"><span>Recommendation</span><strong><?= review.recommendation ?></strong></div>
+        <div class="metric"><span>Risk</span><strong><?= review.politicalRisk ?></strong></div>
+        <div class="metric"><span>Readiness</span><strong><?= review.draftReadiness ?></strong></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Final Draft Text</h3>
+      <div class="draft"><?= review.draftText ?></div>
+    </section>
+
+    <section class="card">
+      <h3>Source Check</h3>
+      <div class="draft source"><?= review.sourceNotes ?></div>
+      <? if (review.mediaNotes) { ?>
+        <h3 style="margin-top:14px;">Image / Media Note</h3>
+        <div class="draft source"><?= review.mediaNotes ?></div>
+      <? } ?>
+    </section>
+
+    <form method="post" class="card">
+      <input type="hidden" name="rid" value="<?= rid ?>">
+      <input type="hidden" name="token" value="<?= rawToken ?>">
+
+      <div class="notice">No button on this page publishes to LinkedIn. This only records your approval decision.</div>
+
+      <label for="notes">Optional note</label>
+      <textarea id="notes" name="notes" placeholder="Optional. You can leave this blank."></textarea>
+
+      <div class="actions">
+        <button type="submit" name="action" value="approve_text_only">Approve Text Only<span>Use this for the normal first test post.</span></button>
+        <button type="submit" name="action" value="approve_text_plus_media">Approve Text + Media<span>Use only if the image also looks right.</span></button>
+        <button type="submit" name="action" value="approve_text_reject_media" class="secondary">Approve Text, Reject Media<span>Text is OK, but skip the image.</span></button>
+        <button type="submit" name="action" value="needs_edits" class="warning">Needs Edits<span>The console should make another draft version.</span></button>
+        <button type="submit" name="action" value="pick_different_topic" class="secondary">Pick Different Topic<span>This topic is not right for LinkedIn.</span></button>
+        <button type="submit" name="action" value="save_for_later" class="secondary">Save For Later<span>Do not post this now.</span></button>
+        <button type="submit" name="action" value="reject" class="danger">Reject<span>Do not use this draft.</span></button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

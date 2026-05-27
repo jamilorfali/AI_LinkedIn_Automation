@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local data
+/data/sqlite/*.db
+/data/sqlite/*.db-*
+/data/logs/*.log
+/data/exports/*
+/data/review_packets/*
+/data/manual_links/*.csv
+!data/exports/.gitkeep
+!data/review_packets/.gitkeep
+!data/sqlite/.gitkeep
+!data/logs/.gitkeep
+!data/manual_links/README.md
+
+# Secrets
+.env
+*.secret
+secrets.*
+credentials.json
+token.json
+
+# Local Codex / desktop artifacts
+.codex/
+AI LinkedIn Console.app/
+
+# OS
+.DS_Store

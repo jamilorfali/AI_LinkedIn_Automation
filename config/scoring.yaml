@@ -1,0 +1,45 @@
+scoring_rules:
+  - name: "AI Breakthrough"
+    keywords: ["breakthrough", "revolutionary", "game-changing", "paradigm shift"]
+    score: 10
+    category: "high_impact"
+  - name: "Research Paper"
+    keywords: ["paper", "arxiv", "research", "study", "experiment"]
+    score: 8
+    category: "academic"
+  - name: "Industry News"
+    keywords: ["company", "startup", "funding", "acquisition", "launch"]
+    score: 7
+    category: "industry"
+  - name: "Tool Release"
+    keywords: ["tool", "library", "framework", "open source", "release"]
+    score: 6
+    category: "tools"
+  - name: "Tutorial"
+    keywords: ["tutorial", "guide", "how-to", "learn", "beginner"]
+    score: 5
+    category: "educational"
+  - name: "Discussion"
+    keywords: ["discussion", "debate", "opinion", "thoughts"]
+    score: 3
+    category: "discussion"
+
+weekly_package:
+  max_findings: 10
+  min_score: 5
+  categories:
+    - high_impact
+    - academic
+    - industry
+  sort_by: score_desc
+  template: |
+    Weekly AI Briefing - {date}
+
+    Top Findings:
+
+    {findings}
+
+    Prompt Packet:
+    - Analyze trends
+    - Identify opportunities
+    - Suggest discussion topics

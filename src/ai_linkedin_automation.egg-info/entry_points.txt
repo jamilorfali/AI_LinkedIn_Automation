@@ -1,0 +1,2 @@
+[console_scripts]
+ai-linkedin = ai_linkedin_automation.cli:main

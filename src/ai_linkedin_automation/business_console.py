@@ -21,7 +21,12 @@ from ai_linkedin_automation.approval_webapp.deployment import (
     build_deployment_package,
 )
 from ai_linkedin_automation.approval_webapp.qa import run_local_approval_qa
-from ai_linkedin_automation.article_package import extract_section, is_article_package
+from ai_linkedin_automation.article_package import (
+    article_word_count,
+    extract_section,
+    is_article_package,
+    reference_count,
+)
 from ai_linkedin_automation.config import Config, project_root, resolve_project_path
 from ai_linkedin_automation.drafting import generate_draft_from_topic, save_draft
 from ai_linkedin_automation.ingestion.sources import load_sources_from_config
@@ -983,6 +988,7 @@ def _draft_workspace(config: Config, latest_package: Optional[Dict[str, object]]
 
     approval_state = _draft_is_approved_for_posting(config, draft_id)
     content = row["content"] or ""
+    article_ready = is_article_package(content)
     image = latest_post_image(config, draft_id)
     return {
         "ready": True,
@@ -1000,6 +1006,14 @@ def _draft_workspace(config: Config, latest_package: Optional[Dict[str, object]]
         "draft_readiness": row["draft_readiness"] or 0,
         "content": content,
         "final_post_text": _linkedin_ready_copy(row, content),
+        "article_title": extract_section(content, "Article Title").replace("*", "").strip() if article_ready else "",
+        "article_body": extract_section(content, "Article Body") if article_ready else "",
+        "article_references": extract_section(content, "References") if article_ready else "",
+        "article_sourcing_note": extract_section(content, "Note On Sourcing") if article_ready else "",
+        "article_first_comment": extract_section(content, "Suggested First Comment") if article_ready else "",
+        "article_image_prompt": extract_section(content, "Advanced Image Brief") if article_ready else "",
+        "article_word_count": article_word_count(content) if article_ready else 0,
+        "article_reference_count": reference_count(content) if article_ready else 0,
         "source_abstract": _source_abstract(row),
         "source_link_text": row["source_url"] or "",
         "draft_length_type": row["draft_length_type"] or "short",

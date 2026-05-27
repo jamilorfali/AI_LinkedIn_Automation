@@ -1,6 +1,6 @@
 import sqlite3
 
-from ai_linkedin_automation.article_package import extract_section, reference_count
+from ai_linkedin_automation.article_package import article_word_count, extract_section, reference_count
 from ai_linkedin_automation.config import load_config
 from ai_linkedin_automation.drafting import (
     generate_draft_from_topic,
@@ -115,6 +115,7 @@ def test_generate_draft_from_topic_creates_article_package(tmp_path, monkeypatch
     assert "## Suggested First Comment" in draft
     assert "## Advanced Image Brief" in draft
     assert len(extract_section(draft, "Feed Post").split()) <= 100
+    assert article_word_count(draft) >= 1000
     assert reference_count(draft) >= 10
 
 

@@ -81,6 +81,9 @@ def test_business_home_exposes_showtime_wizard_state(tmp_path, monkeypatch):
     assert home.journey_steps[0]["label"] == "Get the app ready"
     assert home.draft_workspace["ready"] is True
     assert home.draft_workspace["draft_id"] == package.draft_id
+    assert home.draft_workspace["article_body"]
+    assert home.draft_workspace["article_word_count"] >= 1000
+    assert home.draft_workspace["article_reference_count"] >= 10
     assert any(preset["key"] == "shorter" for preset in home.draft_workspace["edit_presets"])
     assert "terminal" not in home.next_action.description.lower()
 
@@ -130,6 +133,13 @@ def test_ui_html_uses_start_to_finish_business_language():
     assert "data-topic-search" in html
     assert "Build My Draft" in html
     assert "Source Looks OK" in html
+    assert "Full Article" in html
+    assert "articleBodyPreview" in html
+    assert "articleQualityStatus" in html
+    assert "copyArticleBtn" in html
+    assert "copyReferencesBtn" in html
+    assert "copyFirstCommentBtn" in html
+    assert "copyImagePromptBtn" in html
     assert "Full Refresh Topics" in html
     assert "Undo Refresh" in html
     assert "Edit with buttons" in html

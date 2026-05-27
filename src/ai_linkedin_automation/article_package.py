@@ -104,6 +104,11 @@ def reference_count(content: str) -> int:
     return len([line for line in references.splitlines() if line.strip().startswith("- ")])
 
 
+def article_word_count(content: str) -> int:
+    article = extract_section(content, "Article Body")
+    return len(re.findall(r"\b[\w']+\b", article))
+
+
 CURATED_REFERENCES: List[ArticleReference] = [
     ArticleReference(
         "National Institute of Standards and Technology",
@@ -369,6 +374,9 @@ def _article_body(
     oecd_ref = next((ref.citation() for ref in refs if ref.author == "OECD"), "OECD (2024)")
     enterprise_ref = next((ref.citation() for ref in refs if "McKinsey" in ref.author), "McKinsey & Company (2025)")
     trust_ref = next((ref.citation() for ref in refs if "Pew" in ref.author), "Pew Research Center (2025)")
+    iso_ref = next((ref.citation() for ref in refs if "International Organization" in ref.author), "International Organization for Standardization (2023)")
+    stanford_ref = next((ref.citation() for ref in refs if "Stanford" in ref.author), "Stanford Institute for Human-Centered Artificial Intelligence (2025)")
+    work_ref = next((ref.citation() for ref in refs if "Microsoft" in ref.author), "Microsoft WorkLab (2025)")
 
     thesis = (
         "what must be true in the workflow before AI output is allowed to become action?"
@@ -401,6 +409,28 @@ The public conversation about AI trust can sound philosophical, but inside a com
 
 The review moment is where that trust gets earned. A good AI workflow should make it easy for a person to see the source, the claim, the recommended action, and the uncertainty. If a user has to reverse-engineer the system to understand why it produced an answer, the workflow is not ready for high-stakes use.
 
+### 4. The hidden risk is institutional amnesia
+
+There is another problem that does not show up in most AI demos: memory. A person may know why a recommendation was accepted, why an exception was made, or why a source was trusted. A workflow needs to preserve that reasoning after the person moves on, the team changes, or the result is challenged six months later.
+
+That is where management-system thinking matters. Standards such as {iso_ref} are useful because they force the organization to think about responsibilities, controls, monitoring, and improvement loops. The point is not to turn every AI project into paperwork. The point is to make the decision trail durable enough that the business can learn from it.
+
+This is also why the article's reference base matters. AI adoption is moving faster than most operating models. Reports such as {stanford_ref} show how quickly capability, investment, policy, and public concern are changing at the same time. When the environment moves this quickly, a team cannot rely on informal judgment alone. It needs a repeatable way to decide which AI outputs are safe to use, which need more review, and which should never leave the sandbox.
+
+### 5. The practical design spec
+
+If I were turning this into an internal design spec, I would start with five controls.
+
+First, define the allowed sources. A useful AI workflow should not treat every input as equally trustworthy. Public research, policy documents, internal approved knowledge, vendor documentation, and user-provided context all need different handling.
+
+Second, separate drafting from deciding. AI can summarize, compare, classify, and propose. The decision to act should be explicit, assigned, and logged.
+
+Third, require evidence for consequential claims. If the output affects customers, money, hiring, compliance, safety, reputation, or public commitments, the workflow should show the source trail.
+
+Fourth, build exception handling before launch. The team should know what happens when the model is unsure, when sources conflict, when the user overrides the system, or when the recommendation looks plausible but unsupported.
+
+Fifth, measure whether the workflow improves work rather than merely increasing output. Workplace research such as {work_ref} is useful here because it reminds leaders that productivity is not just more messages, faster drafts, or busier tools. The better measure is whether teams make higher-quality decisions with less ambiguity.
+
 ### What I would do next
 
 Before funding another broad AI pilot, I would ask for one page:
@@ -413,7 +443,9 @@ Before funding another broad AI pilot, I would ask for one page:
 
 That one page will reveal more about readiness than a polished demo. It also turns the AI conversation into something executives can actually govern.
 
-The headline is not that AI needs more rules. The headline is that AI needs better-designed moments of human judgment. Without those moments, the organization is not scaling intelligence. It is scaling ambiguity."""
+The headline is not that AI needs more rules. The headline is that AI needs better-designed moments of human judgment. Without those moments, the organization is not scaling intelligence. It is scaling ambiguity.
+
+That is the standard I would use before calling any AI workflow enterprise-ready. Not whether the model is impressive. Not whether the interface feels modern. Not whether the demo lands well in a meeting. The standard is whether the workflow makes responsibility visible enough that a real team can trust it, challenge it, improve it, and explain it when the stakes are no longer theoretical."""
 
 
 def _sourcing_note(refs: List[ArticleReference]) -> str:

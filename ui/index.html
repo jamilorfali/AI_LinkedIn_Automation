@@ -452,6 +452,40 @@
       gap: 12px;
       align-items: start;
     }
+    .article-panel { grid-column: 1 / -1; }
+    .article-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+    .article-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: .84rem;
+    }
+    .article-stats span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .article-support-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .article-support-grid .draft-text {
+      min-height: 150px;
+      font-size: .92rem;
+      line-height: 1.48;
+    }
     .toast {
       position: fixed;
       right: 18px;
@@ -800,13 +834,14 @@
     body.nav-open { overflow: hidden; }
 
     @media (max-width: 980px) {
-      .hero, .approval-focus, .approval-preview, .grid-2, .grid-3, .grid-4, .artifact-layout, .maintenance-layout, .primary-actions, .single-action, .draft-workspace, .post-composer, .safety-strip, .topic-grid { grid-template-columns: 1fr; }
+      .hero, .approval-focus, .approval-preview, .grid-2, .grid-3, .grid-4, .artifact-layout, .maintenance-layout, .primary-actions, .single-action, .draft-workspace, .post-composer, .article-head, .article-support-grid, .safety-strip, .topic-grid { grid-template-columns: 1fr; }
       .wizard-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .tabbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .inline-form, .topic-search, .copy-grid, .next-card { grid-template-columns: 1fr; }
       .topbar { align-items: flex-start; flex-direction: column; }
       .brand { width: 100%; }
       .top-actions { justify-content: flex-start; }
+      .article-stats { justify-content: flex-start; }
     }
     @media (max-width: 640px) {
       .app { width: min(100vw - 16px, 1180px); padding-top: 8px; }
@@ -1215,6 +1250,44 @@
               <button id="openLinkedInBtn" class="secondary">Open LinkedIn</button>
             </div>
             <p id="packageFeedback" class="fine-print" style="margin-top:10px;">Package status will appear here.</p>
+          </div>
+          <div class="panel article-panel">
+            <div class="article-head">
+              <div>
+                <h3>Full Article</h3>
+                <p id="articleQualityStatus" class="panel-copy">Build a draft to create the full article package.</p>
+              </div>
+              <div id="articleStats" class="article-stats" aria-label="Article quality stats">
+                <span>0 words</span>
+                <span>0 references</span>
+              </div>
+            </div>
+            <h4 id="articleTitlePreview">Article title will appear here.</h4>
+            <div id="articleBodyPreview" class="draft-text" style="margin-top:10px;">Build a draft to create the 1000+ word article.</div>
+            <div class="button-row" style="margin-top:10px;">
+              <button id="copyArticleBtn" class="secondary">Copy Article</button>
+              <button id="copyReferencesBtn" class="secondary">Copy References</button>
+              <button id="copyFirstCommentBtn" class="secondary">Copy First Comment</button>
+              <button id="copyImagePromptBtn" class="secondary">Copy Image Prompt</button>
+            </div>
+            <div class="article-support-grid">
+              <div>
+                <h4>References</h4>
+                <div id="articleReferencesPreview" class="draft-text compact" style="margin-top:8px;">No references loaded yet.</div>
+              </div>
+              <div>
+                <h4>Suggested First Comment</h4>
+                <div id="articleFirstCommentPreview" class="draft-text compact" style="margin-top:8px;">No first comment loaded yet.</div>
+              </div>
+              <div>
+                <h4>Sourcing Note</h4>
+                <div id="articleSourcingNotePreview" class="draft-text compact" style="margin-top:8px;">No sourcing note loaded yet.</div>
+              </div>
+              <div>
+                <h4>Image Prompt</h4>
+                <div id="articleImagePromptPreview" class="draft-text compact" style="margin-top:8px;">No image prompt loaded yet.</div>
+              </div>
+            </div>
           </div>
           <div class="panel">
             <h3>Optional Image</h3>
@@ -1627,6 +1700,43 @@
       ).join('');
     }
 
+    function setText(id, value) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
+    }
+
+    function renderArticlePackage(draft) {
+      const wordCount = Number(draft?.article_word_count || 0);
+      const referenceCount = Number(draft?.article_reference_count || draft?.source_reference_count || 0);
+      const hasArticle = Boolean(draft?.article_body);
+      const meetsDepth = hasArticle && wordCount >= 1000 && referenceCount >= 10;
+      const articleTitle = draft?.article_title || (draft?.ready ? 'Full article package was not generated for this draft.' : 'Article title will appear here.');
+      const articleBody = draft?.article_body || (draft?.ready ? 'This draft does not contain a long-form article yet. Rebuild the draft so the application creates the full article package.' : 'Build a draft to create the 1000+ word article.');
+      const references = draft?.article_references || (draft?.ready ? 'No reference dossier was generated for this draft.' : 'No references loaded yet.');
+      const firstComment = draft?.article_first_comment || (draft?.ready ? 'No suggested first comment was generated for this draft.' : 'No first comment loaded yet.');
+      const sourcingNote = draft?.article_sourcing_note || (draft?.ready ? 'No sourcing note was generated for this draft.' : 'No sourcing note loaded yet.');
+      const imagePrompt = draft?.article_image_prompt || (draft?.ready ? 'No image prompt was generated for this draft.' : 'No image prompt loaded yet.');
+
+      setText('articleTitlePreview', articleTitle);
+      setText('articleBodyPreview', articleBody);
+      setText('articleReferencesPreview', references);
+      setText('articleFirstCommentPreview', firstComment);
+      setText('articleSourcingNotePreview', sourcingNote);
+      setText('articleImagePromptPreview', imagePrompt);
+
+      document.getElementById('articleStats').innerHTML = [
+        `<span>${escapeHtml(wordCount)} words</span>`,
+        `<span>${escapeHtml(referenceCount)} references</span>`
+      ].join('');
+
+      const status = !draft?.ready
+        ? 'Build a draft to create the full article package.'
+        : meetsDepth
+          ? `Article ready: ${wordCount} words with ${referenceCount} references.`
+          : `Needs more depth before publishing: ${wordCount} words with ${referenceCount} references. Target: 1000+ words and 10+ sources.`;
+      setText('articleQualityStatus', status);
+    }
+
     function renderDraftWorkspace() {
       const draft = home.draft_workspace || {};
       const content = draft.content || 'No draft yet. Click Build My Draft.';
@@ -1637,6 +1747,7 @@
       document.getElementById('draftMeta').textContent = meta;
       document.getElementById('draftText').textContent = content;
       document.getElementById('finalCopyPreview').textContent = finalText;
+      renderArticlePackage(draft);
       document.getElementById('sourceFacts').innerHTML = renderSourceFacts(draft);
       document.getElementById('editButtons').innerHTML = renderEditButtons(draft);
       document.querySelectorAll('[data-edit-preset]').forEach(button => {
@@ -1944,6 +2055,24 @@
       return copyText('post text', draft.final_post_text || draft.content || '');
     }
 
+    async function copyArticleText() {
+      const draft = home?.draft_workspace || {};
+      const title = draft.article_title ? `${draft.article_title}\n\n` : '';
+      return copyText('full article', `${title}${draft.article_body || ''}`.trim());
+    }
+
+    async function copyArticleReferences() {
+      return copyText('references', home?.draft_workspace?.article_references || '');
+    }
+
+    async function copyFirstComment() {
+      return copyText('first comment', home?.draft_workspace?.article_first_comment || '');
+    }
+
+    async function copyImagePrompt() {
+      return copyText('image prompt', home?.draft_workspace?.article_image_prompt || '');
+    }
+
     async function copyApprovedPostTextAndOpenLinkedIn() {
       await copyApprovedPostText();
       window.open('https://www.linkedin.com/feed/', '_blank', 'noopener');
@@ -2232,6 +2361,10 @@
     bindClick('viewArtifactBtn', () => viewPath(document.getElementById('artifactSelect').value));
     bindClick('copyDraftBtn', copyApprovedPostText);
     bindClick('copyOpenLinkedInBtn', copyApprovedPostTextAndOpenLinkedIn);
+    bindClick('copyArticleBtn', copyArticleText);
+    bindClick('copyReferencesBtn', copyArticleReferences);
+    bindClick('copyFirstCommentBtn', copyFirstComment);
+    bindClick('copyImagePromptBtn', copyImagePrompt);
     bindClick('copyAbstractBtn', () => copyText('abstract', home?.draft_workspace?.source_abstract || ''));
     bindClick('copySourceLinkBtn', () => copyText('source link', home?.draft_workspace?.source_link_text || ''));
     bindClick('openLinkedInBtn', openLinkedInAfterApproval);
